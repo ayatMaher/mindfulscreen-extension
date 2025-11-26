@@ -1,4 +1,4 @@
-﻿class WellnessTracker {
+﻿﻿class WellnessTracker {
   private currentTab: chrome.tabs.Tab | null = null;
   private startTime: number = 0;
   private sessionStartTime: number = 0;

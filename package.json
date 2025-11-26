@@ -4,7 +4,8 @@
   "scripts": {
     "build": "webpack --mode=production",
     "dev": "webpack --mode=development --watch",
-    "type-check": "tsc --noEmit"
+    "type-check": "tsc --noEmit",
+    "vercel-build": "webpack --mode=production"
   },
   "devDependencies": {
     "@types/chrome": "^0.0.246",
