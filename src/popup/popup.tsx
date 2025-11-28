@@ -5,6 +5,8 @@ import CategoryChart from './components/CategoryChart';
 import StatsCards from './components/StatsCards';
 import GoalsProgress from './components/GoalsProgress';
 import SettingsPanel from './components/SettingsPanel';
+import DataManager from './components/DataManager';
+import WeeklyReport from './components/WeeklyReport';
 import './popup.css';
 
 export interface Activity {
@@ -57,8 +59,8 @@ const Popup: React.FC = () => {
   const [dailySummary, setDailySummary] = useState<DailySummary | null>(null);
   const [userSettings, setUserSettings] = useState<UserSettings | null>(null);
   const [achievements, setAchievements] = useState<Achievement[]>([]);
-  const [activeTab, setActiveTab] = useState<'dashboard' | 'goals' | 'settings'>('dashboard');
-  const [loading, setLoading] = useState(true);
+  const [weeklyData, setWeeklyData] = useState<DailySummary[]>([]);
+  const [activeTab, setActiveTab] = useState<'dashboard' | 'weekly' | 'data' | 'goals' | 'settings'>('dashboard');  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     loadData();
@@ -87,7 +89,8 @@ const Popup: React.FC = () => {
         'activities', 
         `daily_${today}`,
         'userSettings',
-        'achievements'
+        'achievements',
+        'weeklyData'
       ]);
       
       const activitiesData: Activity[] = result.activities || [];
@@ -95,6 +98,7 @@ const Popup: React.FC = () => {
       setDailySummary(result[`daily_${today}`] || null);
       setUserSettings(result.userSettings || null);
       setAchievements(result.achievements || []);
+      setWeeklyData(result.weeklyData || generateSampleWeeklyData());
     } catch (error) {
       console.error('Error loading data:', error);
     } finally {
@@ -160,6 +164,18 @@ const Popup: React.FC = () => {
       >
         ⚙️ Settings
       </button>
+      <button 
+  className={`tab ${activeTab === 'weekly' ? 'active' : ''}`}
+  onClick={() => setActiveTab('weekly')}
+>
+  📅 Weekly
+</button>
+<button 
+  className={`tab ${activeTab === 'data' ? 'active' : ''}`}
+  onClick={() => setActiveTab('data')}
+>
+  📁 Data
+</button>
     </div>
 
     {/* Dashboard Tab */}
@@ -212,6 +228,14 @@ const Popup: React.FC = () => {
       </div>
     )}
 
+    {activeTab === 'weekly' && (
+  <WeeklyReport weeklyData={weeklyData} />
+)}
+
+{activeTab === 'data' && (
+  <DataManager activities={activities} dailySummary={dailySummary} />
+)}
+
     {/* Action Buttons */}
     <div className="actions">
       <button className="btn btn-primary" onClick={loadData}>
@@ -235,5 +259,18 @@ if (container) {
   const root = createRoot(container);
   root.render(<Popup />);
 }
+
+const generateSampleWeeklyData = (): DailySummary[] => {
+  return Array.from({ length: 7 }, (_, i) => ({
+    totalTime: Math.floor(Math.random() * 14400) + 3600, // 1-4 hours
+    categories: {
+      productive: Math.floor(Math.random() * 7200) + 1800,
+      social: Math.floor(Math.random() * 3600),
+      entertainment: Math.floor(Math.random() * 5400),
+      shopping: Math.floor(Math.random() * 1800),
+      other: Math.floor(Math.random() * 3600)
+    }
+  }));
+};
 
 export default Popup;
