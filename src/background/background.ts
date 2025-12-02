@@ -91,28 +91,42 @@
   }
 
   private async checkDailyLimits() {
-    const today = new Date().toISOString().split('T')[0];
-    const key = `daily_${today}`;
-    const result = await chrome.storage.local.get([key, 'userSettings']);
-    
-    const dailyData = result[key];
-    const settings = result.userSettings;
+  const today = new Date().toISOString().split('T')[0];
+  const key = `daily_${today}`;
+  const result = await chrome.storage.local.get([key, 'userSettings']);
+  
+  const dailyData = result[key];
+  const settings = result.userSettings;
 
-    if (!dailyData || !settings) return;
+  if (!dailyData || !settings) return;
 
-    const totalMinutes = Math.floor(dailyData.totalTime / 60);
-    const socialMinutes = Math.floor(dailyData.categories.social / 60);
+  const totalMinutes = Math.floor(dailyData.totalTime / 60);
+  const socialMinutes = Math.floor(dailyData.categories.social / 60);
+  const entertainmentMinutes = Math.floor(dailyData.categories.entertainment / 60);
+  const shoppingMinutes = Math.floor(dailyData.categories.shopping / 60);
 
-    // Check daily time limit
-    if (totalMinutes >= settings.dailyLimit) {
-      this.showLimitNotification('daily', totalMinutes);
-    }
-
-    // Check social media limit
-    if (socialMinutes >= settings.goals.maxSocialTime) {
-      this.showLimitNotification('social', socialMinutes);
-    }
+  // Check daily time limit
+  if (totalMinutes >= settings.dailyLimit) {
+    this.showLimitNotification('daily', totalMinutes);
   }
+
+  // Check social media limit
+  if (socialMinutes >= settings.goals.maxSocialTime) {
+    this.showLimitNotification('social', socialMinutes);
+  }
+
+  // Check entertainment limit (if set)
+  if (settings.goals.maxEntertainmentTime && 
+      entertainmentMinutes >= settings.goals.maxEntertainmentTime) {
+    this.showLimitNotification('entertainment', entertainmentMinutes);
+  }
+
+  // Check shopping limit (if set)
+  if (settings.goals.maxShoppingTime && 
+      shoppingMinutes >= settings.goals.maxShoppingTime) {
+    this.showLimitNotification('shopping', shoppingMinutes);
+  }
+}
 
   private async showBreakNotification(sessionMinutes: number) {
     const settings = await this.getUserSettings();
@@ -143,19 +157,21 @@
   }
 
   private showLimitNotification(type: string, currentMinutes: number) {
-    const messages = {
-      daily: `You've reached your daily limit of ${currentMinutes} minutes. Consider taking a longer break!`,
-      social: `You've spent ${currentMinutes} minutes on social media today. Time to focus!`
-    };
+  const messages = {
+    daily: `You've reached your daily limit of ${currentMinutes} minutes. Consider taking a longer break!`,
+    social: `You've spent ${currentMinutes} minutes on social media today. Time to focus!`,
+    entertainment: `You've spent ${currentMinutes} minutes on entertainment. Balance is key!`,
+    shopping: `You've spent ${currentMinutes} minutes shopping. Consider taking a break!`
+  };
 
-    chrome.notifications.create({
-      type: 'basic',
-      iconUrl: 'icons/icon-48.png',
-      title: '🎯 Goal Reminder',
-      message: messages[type as keyof typeof messages],
-      priority: 1
-    });
-  }
+  chrome.notifications.create({
+    type: 'basic',
+    iconUrl: 'icons/icon-48.png',
+    title: '🎯 Goal Reminder',
+    message: messages[type as keyof typeof messages] || `Limit reached for ${type}`,
+    priority: 1
+  });
+}
 
   private async handleTabSwitch(tabId: number) {
     this.stopTracking();
@@ -331,6 +347,7 @@
       return url;
     }
   }
+
 }
 
 // Handle notification clicks

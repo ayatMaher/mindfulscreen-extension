@@ -109,7 +109,7 @@ body {
 
 /* Modern Tabs */
 .tabs {
-  display: flex;
+  display:flex;
   background: var(--card-bg);
   padding: 8px;
   margin: 0 16px;
@@ -656,4 +656,230 @@ body {
 
 .btn-danger:hover {
   background: #dc2626;
+}
+
+/* Analytics Dashboard Styles */
+.analytics-card {
+  background: var(--card-bg);
+  border-radius: var(--radius);
+  padding: 20px;
+  margin: 8px 16px;
+  box-shadow: var(--shadow);
+}
+
+.analytics-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  margin-bottom: 20px;
+}
+
+.metric-card {
+  background: var(--secondary);
+  padding: 16px;
+  border-radius: 8px;
+  text-align: center;
+  border: 1px solid var(--border);
+}
+
+.metric-header {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  margin-bottom: 8px;
+}
+
+.metric-emoji {
+  font-size: 1rem;
+}
+
+.metric-title {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--text-light);
+}
+
+.metric-value {
+  font-size: 1.25rem;
+  font-weight: 700;
+  margin-bottom: 4px;
+}
+
+.metric-value.positive {
+  color: var(--success);
+}
+
+.metric-value.negative {
+  color: var(--danger);
+}
+
+.metric-description {
+  font-size: 0.7rem;
+  color: var(--text-light);
+}
+
+.top-domains-section {
+  border-top: 1px solid var(--border);
+  padding-top: 16px;
+}
+
+.top-domains-section h4 {
+  margin: 0 0 12px 0;
+  font-size: 0.875rem;
+  font-weight: 600;
+}
+
+.domains-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.domain-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 0;
+  border-bottom: 1px solid var(--border);
+}
+
+.domain-item:last-child {
+  border-bottom: none;
+}
+
+.domain-rank {
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: var(--primary);
+  width: 24px;
+}
+
+.domain-name {
+  flex: 1;
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: var(--text);
+}
+
+.domain-time {
+  font-size: 0.75rem;
+  color: var(--text-light);
+  font-weight: 600;
+}
+
+/* Smart Recommendations Styles */
+.recommendations-card {
+  background: var(--card-bg);
+  border-radius: var(--radius);
+  padding: 20px;
+  margin: 8px 16px;
+  box-shadow: var(--shadow);
+}
+
+.recommendations-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.recommendation-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 12px;
+  border-radius: 8px;
+  border-left: 4px solid var(--primary);
+}
+
+.recommendation-item.warning {
+  border-left-color: var(--warning);
+  background: rgba(245, 158, 11, 0.05);
+}
+
+.recommendation-item.suggestion {
+  border-left-color: var(--success);
+  background: rgba(16, 185, 129, 0.05);
+}
+
+.recommendation-item.break {
+  border-left-color: var(--primary);
+  background: rgba(99, 102, 241, 0.05);
+}
+
+.recommendation-emoji {
+  font-size: 1.2rem;
+}
+
+.recommendation-content {
+  flex: 1;
+}
+
+.recommendation-title {
+  font-weight: 600;
+  font-size: 0.875rem;
+  margin-bottom: 4px;
+}
+
+.recommendation-message {
+  font-size: 0.75rem;
+  color: var(--text-light);
+  line-height: 1.4;
+}
+
+/* Advanced Settings Styles */
+.advanced-settings-card {
+  background: var(--card-bg);
+  border-radius: var(--radius);
+  padding: 20px;
+  margin: 8px 16px;
+  box-shadow: var(--shadow);
+}
+
+.settings-section {
+  margin-bottom: 24px;
+  padding-bottom: 20px;
+  border-bottom: 1px solid var(--border);
+}
+
+.settings-section:last-child {
+  margin-bottom: 0;
+  padding-bottom: 0;
+  border-bottom: none;
+}
+
+.settings-section h4 {
+  margin: 0 0 16px 0;
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.setting-group {
+  margin-bottom: 16px;
+}
+
+.setting-group:last-child {
+  margin-bottom: 0;
+}
+
+.setting-label {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 6px;
+  font-size: 0.875rem;
+  font-weight: 500;
+}
+
+.setting-description {
+  font-size: 0.75rem;
+  color: var(--text-light);
+  line-height: 1.4;
+}
+
+.settings-actions {
+  display: flex;
+  justify-content: center;
+  margin-top: 20px;
 }

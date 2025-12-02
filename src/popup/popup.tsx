@@ -1,4 +1,4 @@
-﻿﻿import React, { useEffect, useState } from 'react';
+﻿import React, { useEffect, useState } from 'react';
 import { createRoot } from 'react-dom/client';
 import ActivityFeed from './components/ActivityFeed';
 import CategoryChart from './components/CategoryChart';
@@ -7,6 +7,9 @@ import GoalsProgress from './components/GoalsProgress';
 import SettingsPanel from './components/SettingsPanel';
 import DataManager from './components/DataManager';
 import WeeklyReport from './components/WeeklyReport';
+import AnalyticsDashboard from './components/AnalyticsDashboard';
+import SmartRecommendations from './components/SmartRecommendations';
+import AdvancedSettings from './components/AdvancedSettings';
 import './popup.css';
 
 export interface Activity {
@@ -42,7 +45,13 @@ export interface UserSettings {
   goals: {
     dailyProductiveTime: number;
     maxSocialTime: number;
+    maxEntertainmentTime?: number; 
+    maxShoppingTime?: number;      
   };
+  detailedTracking?: boolean;     
+  analyticsEnabled?: boolean;
+  achievementNotifications?: boolean;
+  weeklyReports?: boolean;
 }
 
 export interface Achievement {
@@ -60,7 +69,8 @@ const Popup: React.FC = () => {
   const [userSettings, setUserSettings] = useState<UserSettings | null>(null);
   const [achievements, setAchievements] = useState<Achievement[]>([]);
   const [weeklyData, setWeeklyData] = useState<DailySummary[]>([]);
-  const [activeTab, setActiveTab] = useState<'dashboard' | 'weekly' | 'data' | 'goals' | 'settings'>('dashboard');  const [loading, setLoading] = useState(true);
+  const [activeTab, setActiveTab] = useState<'dashboard' | 'analytics' | 'weekly' | 'data' | 'goals' | 'settings'>('dashboard')
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     loadData();
@@ -153,23 +163,30 @@ const Popup: React.FC = () => {
         📊 Dashboard
       </button>
       <button 
+    className={`tab ${activeTab === 'analytics' ? 'active' : ''}`}
+    onClick={() => setActiveTab('analytics')}
+  >
+    📈 Analytics
+  </button>
+      <button 
         className={`tab ${activeTab === 'goals' ? 'active' : ''}`}
         onClick={() => setActiveTab('goals')}
       >
         🎯 Goals
       </button>
+        <button 
+  className={`tab ${activeTab === 'weekly' ? 'active' : ''}`}
+  onClick={() => setActiveTab('weekly')}
+>
+  📅 Weekly
+</button>
       <button 
         className={`tab ${activeTab === 'settings' ? 'active' : ''}`}
         onClick={() => setActiveTab('settings')}
       >
         ⚙️ Settings
       </button>
-      <button 
-  className={`tab ${activeTab === 'weekly' ? 'active' : ''}`}
-  onClick={() => setActiveTab('weekly')}
->
-  📅 Weekly
-</button>
+    
 <button 
   className={`tab ${activeTab === 'data' ? 'active' : ''}`}
   onClick={() => setActiveTab('data')}
@@ -214,6 +231,31 @@ const Popup: React.FC = () => {
       </>
     )}
 
+{activeTab === 'analytics' && (
+  <>
+    <div className="card">
+      <AnalyticsDashboard 
+        activities={activities}
+        dailySummary={dailySummary}
+        weeklyData={weeklyData}
+      />
+    </div>
+    
+    {userSettings && (
+      <div className="card">
+        <SmartRecommendations 
+          activities={activities}
+          dailySummary={dailySummary}
+          settings={userSettings}
+        />
+      </div>
+    )}
+    
+    <div className="card activity-card">
+      <ActivityFeed activities={activities} />
+    </div>
+  </>
+)}
     {/* Goals Tab */}
     {activeTab === 'goals' && userSettings && (
       <div className="card goals-card">
@@ -222,11 +264,16 @@ const Popup: React.FC = () => {
     )}
 
     {/* Settings Tab */}
-    {activeTab === 'settings' && userSettings && (
-      <div className="card">
-        <SettingsPanel settings={userSettings} onSettingsChange={updateSettings} />
-      </div>
-    )}
+   {activeTab === 'settings' && userSettings && (
+  <>
+    <div className="card">
+      <SettingsPanel settings={userSettings} onSettingsChange={updateSettings} />
+    </div>
+    <div className="card">
+      <AdvancedSettings settings={userSettings} onSettingsChange={updateSettings} />
+    </div>
+  </>
+)}
 
     {activeTab === 'weekly' && (
   <WeeklyReport weeklyData={weeklyData} />
