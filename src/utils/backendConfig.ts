@@ -7,9 +7,9 @@ export interface BackendConfig {
 }
 
 export const defaultBackendConfig: BackendConfig = {
-  baseUrl: 'https://api.mindfulscreen.app', // Replace with your actual backend URL
+  baseUrl: 'https://vercel.com/ayatmahers-projects/mindfulscreen-extension', // Replace with your actual backend URL
   syncInterval: 15, // Sync every 15 minutes
-  enabled: false // Disabled by default until user enables it
+  enabled: true // Disabled by default until user enables it
 };
 
 export class BackendService {

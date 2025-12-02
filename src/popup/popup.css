@@ -1281,4 +1281,79 @@ input:checked + .toggle-slider:before {
   font-size: 0.7rem;
   color: var(--text-light);
 }
+/* Notification Settings Styles */
+.notification-settings-card {
+  background: var(--card-bg);
+  border-radius: var(--radius);
+  padding: 20px;
+  margin: 8px 16px;
+  box-shadow: var(--shadow);
+}
+
+.time-inputs {
+  display: flex;
+  gap: 12px;
+  margin: 12px 0;
+}
+
+.time-inputs .form-group {
+  flex: 1;
+}
+
+.time-inputs input[type="time"] {
+  width: 100%;
+  padding: 8px 12px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--secondary);
+  font-family: monospace;
+}
+
+/* Break History Component */
+.break-history-card {
+  background: var(--card-bg);
+  border-radius: var(--radius);
+  padding: 20px;
+  margin: 8px 16px;
+  box-shadow: var(--shadow);
+}
+
+.break-history-list {
+  max-height: 200px;
+  overflow-y: auto;
+  margin-top: 12px;
+}
+
+.break-history-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px;
+  border-bottom: 1px solid var(--border);
+}
+
+.break-history-item:last-child {
+  border-bottom: none;
+}
+
+.break-history-emoji {
+  font-size: 1.2rem;
+}
+
+.break-history-content {
+  flex: 1;
+}
+
+.break-history-time {
+  font-size: 0.75rem;
+  color: var(--text-light);
+}
+
+.break-history-action {
+  font-size: 0.7rem;
+  padding: 2px 6px;
+  border-radius: 4px;
+  background: var(--secondary);
+  color: var(--text-light);
+}
 

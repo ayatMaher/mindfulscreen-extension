@@ -13,6 +13,8 @@ import AdvancedSettings from './components/AdvancedSettings';
 import AuthPanel from './components/AuthPanel';
 import SyncSettings from './components/SyncSettings';
 import { BackendService, defaultBackendConfig } from '../utils/backendConfig';
+import NotificationSettings from './components/NotificationSettings';
+import BreakHistory from './components/BreakHistory';
 import './popup.css';
 
 export interface Activity {
@@ -40,6 +42,23 @@ export interface DailySummary {
     other: number;
   };
 }
+export interface NotificationSettings {
+  breakReminders: boolean;
+  dailyLimits: boolean;
+  categoryLimits: boolean;
+  achievements: boolean;
+  weeklyReports: boolean;
+  snoozeDuration: number;
+  enableSound: boolean;
+  urgentMode: boolean;
+}
+
+export interface BreakSchedule {
+  enabled: boolean;
+  startTime: string;
+  endTime: string;
+  weekendsEnabled: boolean;
+}
 
 export interface UserSettings {
   breakInterval: number;
@@ -55,6 +74,8 @@ export interface UserSettings {
   analyticsEnabled?: boolean;
   achievementNotifications?: boolean;
   weeklyReports?: boolean;
+   notificationSettings?: NotificationSettings;
+  breakSchedule?: BreakSchedule;
 }
 
 export interface Achievement {
@@ -72,7 +93,7 @@ const Popup: React.FC = () => {
   const [userSettings, setUserSettings] = useState<UserSettings | null>(null);
   const [achievements, setAchievements] = useState<Achievement[]>([]);
   const [weeklyData, setWeeklyData] = useState<DailySummary[]>([]);
-  const [activeTab, setActiveTab] = useState<'dashboard' | 'analytics' | 'weekly' | 'data' | 'goals' | 'settings' | 'sync'>('dashboard');
+  const [activeTab, setActiveTab] = useState<'dashboard' | 'analytics' | 'weekly' | 'data' | 'goals' | 'settings' | 'sync' |'notifications'>('dashboard');
   const [loading, setLoading] = useState(true);
   const [backendService] = useState(() => new BackendService(defaultBackendConfig));
   const [isAuthenticated, setIsAuthenticated] = useState(false);
@@ -267,6 +288,17 @@ const Popup: React.FC = () => {
                   <span className="menu-emoji">☁️</span>
                   <span className="menu-label">Sync</span>
                 </button>
+
+                <button 
+                  className={`more-menu-item ${activeTab === 'notifications' ? 'active' : ''}`}
+                  onClick={() => {
+                    setActiveTab('notifications');
+                    setShowMoreMenu(false);
+                  }}
+                >
+                  <span className="menu-emoji">🔔</span>
+                  <span className="menu-label">Notifications</span>
+                </button>
               </div>
             )}
           </div>
@@ -388,7 +420,19 @@ const Popup: React.FC = () => {
           </div>
         </>
       )}
-
+      {activeTab === 'notifications' && userSettings && (
+  <>
+    <div className="card">
+      <NotificationSettings 
+        settings={userSettings} 
+        onSettingsChange={updateSettings} 
+      />
+    </div>
+    <div className="card">
+      <BreakHistory />
+    </div>
+  </>
+)}
       {/* Action Buttons */}
       <div className="actions">
         <button className="btn btn-primary" onClick={loadData}>

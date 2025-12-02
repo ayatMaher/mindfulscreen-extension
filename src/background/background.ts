@@ -1,5 +1,4 @@
-﻿﻿// src/background/background.ts
-import { BackendService, defaultBackendConfig } from '../utils/backendConfig';
+﻿﻿import { BackendService, defaultBackendConfig } from '../utils/backendConfig';
 
 class SyncManager {
   private backendService: BackendService;
@@ -137,77 +136,168 @@ class WellnessTracker {
 
   private async checkForBreakReminder() {
     const settings = await this.getUserSettings();
-    if (!settings.enableNotifications) return;
+    if (!settings.enableNotifications || 
+      !settings.notificationSettings?.breakReminders) return;
 
     const sessionDuration = Date.now() - this.sessionStartTime;
     const sessionMinutes = Math.floor(sessionDuration / (1000 * 60));
 
-    // Check if it's time for a break (every X minutes)
-    if (sessionMinutes > 0 && sessionMinutes % settings.breakInterval === 0) {
-      this.showBreakNotification(sessionMinutes);
+    // Check if we're in scheduled break hours
+  if (settings.breakSchedule?.enabled) {
+    const now = new Date();
+    const currentHour = now.getHours();
+    const currentMinute = now.getMinutes();
+    const [startHour, startMinute] = settings.breakSchedule.startTime.split(':').map(Number);
+    const [endHour, endMinute] = settings.breakSchedule.endTime.split(':').map(Number);
+// Skip weekends if disabled
+    if (!settings.breakSchedule.weekendsEnabled) {
+      const day = now.getDay(); // 0 = Sunday, 6 = Saturday
+      if (day === 0 || day === 6) return;
     }
+     // Check if within schedule
+    const currentTimeInMinutes = currentHour * 60 + currentMinute;
+    const startTimeInMinutes = startHour * 60 + startMinute;
+    const endTimeInMinutes = endHour * 60 + endMinute;
+    
+    if (currentTimeInMinutes < startTimeInMinutes || 
+        currentTimeInMinutes > endTimeInMinutes) {
+      return; // Outside of scheduled hours
+    }
+  }
+ // Check break interval
+  const breakInterval = settings.breakInterval || 60;
+  if (sessionMinutes > 0 && sessionMinutes % breakInterval === 0) {
+    // Skip if user snoozed recently
+    const lastSnooze = await this.getLastSnoozeTime();
+    if (lastSnooze && (Date.now() - lastSnooze) < (settings.notificationSettings?.snoozeDuration || 5) * 60 * 1000) {
+      return;
+    }
+    
+    this.showBreakNotification(sessionMinutes, breakInterval);
+  }
 
     // Check daily limits
     await this.checkDailyLimits();
   }
-
+  
+  private async getLastSnoozeTime(): Promise<number | null> {
+  const result = await chrome.storage.local.get(['lastSnoozeTime']);
+  return result.lastSnoozeTime || null;
+}
   private async checkDailyLimits() {
     const today = new Date().toISOString().split('T')[0];
     const key = `daily_${today}`;
-    const result = await chrome.storage.local.get([key, 'userSettings']);
+    const result = await chrome.storage.local.get([key, 'userSettings','lastLimitNotification']);
     
     const dailyData = result[key];
     const settings = result.userSettings;
+    const lastNotification = result.lastLimitNotification || {};
 
-    if (!dailyData || !settings) return;
+
+    if (!dailyData || !settings || !settings.notificationSettings?.dailyLimits) return;
 
     const totalMinutes = Math.floor(dailyData.totalTime / 60);
     const socialMinutes = Math.floor(dailyData.categories.social / 60);
     const entertainmentMinutes = Math.floor(dailyData.categories.entertainment / 60);
     const shoppingMinutes = Math.floor(dailyData.categories.shopping / 60);
 
-    // Check daily time limit
-    if (totalMinutes >= settings.dailyLimit) {
-      this.showLimitNotification('daily', totalMinutes);
+      // Check daily time limit with thresholds
+  const thresholds = [0.5, 0.8, 0.9, 1.0]; // 50%, 80%, 90%, 100%
+  thresholds.forEach(threshold => {
+    const limitMinutes = settings.dailyLimit * threshold;
+    if (totalMinutes >= limitMinutes && 
+        totalMinutes < limitMinutes + 1 && // Prevent repeated notifications
+        (!lastNotification.daily || lastNotification.daily < limitMinutes)) {
+      
+      let message = '';
+      if (threshold === 0.5) message = `You've used 50% of your daily limit (${totalMinutes}m)`;
+      else if (threshold === 0.8) message = `You're approaching your daily limit (${totalMinutes}m)`;
+      else if (threshold === 0.9) message = `You're very close to your daily limit (${totalMinutes}m)`;
+      else if (threshold === 1.0) message = `You've reached your daily limit of ${totalMinutes} minutes!`;
+      
+      this.showLimitNotification('daily', message, threshold === 1.0);
+      
+      // Update last notification time
+      lastNotification.daily = limitMinutes;
+      chrome.storage.local.set({ lastLimitNotification: lastNotification });
     }
+  });
 
-    // Check social media limit
-    if (socialMinutes >= (settings.goals.maxSocialTime || 60)) {
-      this.showLimitNotification('social', socialMinutes);
-    }
+    // // Check daily time limit
+    // if (totalMinutes >= settings.dailyLimit) {
+    //   this.showLimitNotification('daily', totalMinutes);
+    // }
 
-    // Check entertainment limit (if set)
-    if (settings.goals.maxEntertainmentTime && 
-        entertainmentMinutes >= settings.goals.maxEntertainmentTime) {
-      this.showLimitNotification('entertainment', entertainmentMinutes);
-    }
+    // // Check social media limit
+    // if (socialMinutes >= (settings.goals.maxSocialTime || 60)) {
+    //   this.showLimitNotification('social', socialMinutes);
+    // }
 
-    // Check shopping limit (if set)
-    if (settings.goals.maxShoppingTime && 
-        shoppingMinutes >= settings.goals.maxShoppingTime) {
-      this.showLimitNotification('shopping', shoppingMinutes);
-    }
+    // // Check entertainment limit (if set)
+    // if (settings.goals.maxEntertainmentTime && 
+    //     entertainmentMinutes >= settings.goals.maxEntertainmentTime) {
+    //   this.showLimitNotification('entertainment', entertainmentMinutes);
+    // }
+
+    // // Check shopping limit (if set)
+    // if (settings.goals.maxShoppingTime && 
+    //     shoppingMinutes >= settings.goals.maxShoppingTime) {
+    //   this.showLimitNotification('shopping', shoppingMinutes);
+    // }
   }
 
-  private async showBreakNotification(sessionMinutes: number) {
+  private async showBreakNotification(sessionMinutes: number, breakInterval: number) {
     const settings = await this.getUserSettings();
     
+    let urgencyLevel = 'normal';
+  let title = '🌿 Time for a Break!';
+  let message = `You've been browsing for ${sessionMinutes} minutes. Take a 5-minute break!`;
+  
+  if (sessionMinutes >= breakInterval * 2) {
+    urgencyLevel = 'urgent';
+    title = '⏰ Extended Session Alert';
+    message = `You've been browsing for ${sessionMinutes} minutes. Please take a longer break!`;
+  } else if (sessionMinutes >= breakInterval * 3) {
+    urgencyLevel = 'critical';
+    title = '🚨 Extended Focus Required!';
+    message = `${sessionMinutes} minutes of continuous browsing. Time for a significant break!`;
+  }
+   // Create notification with enhanced buttons
+  const notificationId = `break-reminder-${Date.now()}`;
+  const buttons: chrome.notifications.ButtonOptions[] = [
+    { title: 'Take 5 min break' },
+    { title: 'Snooze 10 min' },
+    { title: 'Dismiss' }
+  ];
+
+    if (settings.notificationSettings?.urgentMode && urgencyLevel === 'critical') {
     chrome.notifications.create({
       type: 'basic',
       iconUrl: 'icons/icon-48.png',
-      title: '🌿 Time for a Break!',
-      message: `You've been browsing for ${sessionMinutes} minutes. Take a 5-minute break!`,
-      buttons: [
-        { title: 'Take 5 min break' }
-      ],
-      priority: 1
+      title: title,
+      message: message,
+      buttons: buttons,
+      priority: 2,
+      requireInteraction: true
     });
-
+  }else{
+    chrome.notifications.create({
+      type: 'basic',
+      iconUrl: 'icons/icon-48.png',
+      title: title,
+      message: message,
+      buttons: buttons,
+      priority: urgencyLevel === 'normal' ? 0 : 1
+    });
+  }
     // Track break reminders
     const breakEvent = {
       type: 'break_reminder',
       timestamp: new Date().toISOString(),
-      sessionDuration: sessionMinutes
+      sessionDuration: sessionMinutes,
+      urgencyLevel: urgencyLevel,
+      notificationId: notificationId,
+      dismissed: false
     };
 
     const result = await chrome.storage.local.get(['breakEvents']);
@@ -217,21 +307,22 @@ class WellnessTracker {
     await chrome.storage.local.set({ breakEvents });
   }
 
-  private showLimitNotification(type: string, currentMinutes: number) {
-    const messages = {
-      daily: `You've reached your daily limit of ${currentMinutes} minutes. Consider taking a longer break!`,
-      social: `You've spent ${currentMinutes} minutes on social media today. Time to focus!`,
-      entertainment: `You've spent ${currentMinutes} minutes on entertainment. Balance is key!`,
-      shopping: `You've spent ${currentMinutes} minutes shopping. Consider taking a break!`
-    };
+  private showLimitNotification(type: string, message: string, isUrgent: boolean = false) {
+    const titles = {
+    daily: '⏰ Daily Limit',
+    social: '👥 Social Media',
+    entertainment: '🎮 Entertainment',
+    shopping: '🛒 Shopping'
+  }; 
 
-    chrome.notifications.create({
-      type: 'basic',
-      iconUrl: 'icons/icon-48.png',
-      title: '🎯 Goal Reminder',
-      message: messages[type as keyof typeof messages] || `Limit reached for ${type}`,
-      priority: 1
-    });
+      chrome.notifications.create({
+    type: 'basic',
+    iconUrl: 'icons/icon-48.png',
+    title: titles[type as keyof typeof titles] || 'Limit Alert',
+    message: message,
+    priority: isUrgent ? 2 : 1,
+    buttons: isUrgent ? [{ title: 'Take Action' }] : undefined
+  });
   }
 
   private async handleTabSwitch(tabId: number) {
@@ -436,12 +527,102 @@ class WellnessTracker {
 // Handle notification clicks
 chrome.notifications.onClicked.addListener((notificationId) => {
   console.log('Notification clicked:', notificationId);
+
+    // If it's a break reminder, open a helpful article
+  if (notificationId.includes('break-reminder')) {
+    chrome.tabs.create({
+      url: 'https://www.healthline.com/health/eye-health/20-20-20-rule'
+    });
+  }
 });
 
-chrome.notifications.onButtonClicked.addListener((notificationId, buttonIndex) => {
-  if (buttonIndex === 0) {
-    // "Take break" button clicked
+chrome.notifications.onButtonClicked.addListener(async (notificationId, buttonIndex) => {
+  console.log('Button clicked:', notificationId, buttonIndex);
+  
+  if (notificationId.includes('break-reminder')) {
+    const settings = await chrome.storage.local.get(['userSettings']);
+    const snoozeDuration = settings.userSettings?.notificationSettings?.snoozeDuration || 10;
+    
+    if (buttonIndex === 0) {
+      // "Take break" button - start 5 minute timer
+      console.log('Starting break timer...');
+      chrome.alarms.create('break-timer', { delayInMinutes: 5 });
+      
+      // Track break taken
+      const result = await chrome.storage.local.get(['breakEvents']);
+      const breakEvents = result.breakEvents || [];
+      const lastEvent = breakEvents[breakEvents.length - 1];
+      if (lastEvent && lastEvent.notificationId === notificationId) {
+        lastEvent.actionTaken = 'break_started';
+        lastEvent.actionTime = new Date().toISOString();
+        await chrome.storage.local.set({ breakEvents });
+      }
+      
+    } else if (buttonIndex === 1) {
+      // "Snooze" button
+      console.log(`Snoozing for ${snoozeDuration} minutes...`);
+      const now = Date.now();
+      await chrome.storage.local.set({ lastSnoozeTime: now });
+      
+      // Track snooze
+      const result = await chrome.storage.local.get(['breakEvents']);
+      const breakEvents = result.breakEvents || [];
+      const lastEvent = breakEvents[breakEvents.length - 1];
+      if (lastEvent && lastEvent.notificationId === notificationId) {
+        lastEvent.actionTaken = 'snoozed';
+        lastEvent.snoozeDuration = snoozeDuration;
+        lastEvent.actionTime = new Date().toISOString();
+        await chrome.storage.local.set({ breakEvents });
+      }
+      
+    } else if (buttonIndex === 2) {
+      // "Dismiss" button
+      console.log('Notification dismissed');
+      
+      // Track dismissal
+      const result = await chrome.storage.local.get(['breakEvents']);
+      const breakEvents = result.breakEvents || [];
+      const lastEvent = breakEvents[breakEvents.length - 1];
+      if (lastEvent && lastEvent.notificationId === notificationId) {
+        lastEvent.actionTaken = 'dismissed';
+        lastEvent.dismissed = true;
+        lastEvent.actionTime = new Date().toISOString();
+        await chrome.storage.local.set({ breakEvents });
+      }
+    }
+    
+    // Clear the notification
     chrome.notifications.clear(notificationId);
+  }
+});
+
+chrome.notifications.onClosed.addListener(async (notificationId, byUser) => {
+  if (notificationId.includes('break-reminder') && byUser) {
+    // User manually closed the notification
+    const result = await chrome.storage.local.get(['breakEvents']);
+    const breakEvents = result.breakEvents || [];
+    const lastEvent = breakEvents[breakEvents.length - 1];
+    if (lastEvent && lastEvent.notificationId === notificationId) {
+      lastEvent.actionTaken = 'closed_manually';
+      lastEvent.dismissed = true;
+      lastEvent.actionTime = new Date().toISOString();
+      await chrome.storage.local.set({ breakEvents });
+    }
+  }
+});
+
+// Break timer alarm
+chrome.alarms.onAlarm.addListener((alarm) => {
+  if (alarm.name === 'break-timer') {
+    chrome.notifications.create({
+      type: 'basic',
+      iconUrl: 'icons/icon-48.png',
+      title: '✅ Break Complete!',
+      message: 'Your 5-minute break is over. Ready to continue?',
+      priority: 0
+    });
+    
+    chrome.alarms.clear('break-timer');
   }
 });
 
