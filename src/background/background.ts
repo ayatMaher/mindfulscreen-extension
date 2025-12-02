@@ -1,14 +1,69 @@
-﻿﻿class WellnessTracker {
+﻿﻿// src/background/background.ts
+import { BackendService, defaultBackendConfig } from '../utils/backendConfig';
+
+class SyncManager {
+  private backendService: BackendService;
+
+  constructor() {
+    this.backendService = new BackendService(defaultBackendConfig);
+    this.setupSyncAlarm();
+  }
+
+  private setupSyncAlarm() {
+    chrome.alarms.onAlarm.addListener(async (alarm) => {
+      if (alarm.name === 'syncData') {
+        await this.performSync();
+      }
+    });
+  }
+
+  private async performSync() {
+    if (!this.backendService.isAuthenticated()) return;
+
+    const today = new Date().toISOString().split('T')[0];
+    const result = await chrome.storage.local.get(['activities', `daily_${today}`, 'userSettings']);
+
+    try {
+      const success = await this.backendService.syncData(
+        result.activities || [],
+        {
+          dailySummary: result[`daily_${today}`] || null,
+          settings: result.userSettings || null
+        }
+      );
+
+      if (success) {
+        console.log('✅ Auto-sync completed successfully');
+        const now = new Date().toLocaleTimeString();
+        await chrome.storage.local.set({ lastSyncTime: now });
+      } else {
+        console.warn('⚠️ Auto-sync failed');
+      }
+    } catch (error) {
+      console.error('❌ Auto-sync error:', error);
+    }
+  }
+
+  async syncNow() {
+    return this.performSync();
+  }
+}
+
+class WellnessTracker {
   private currentTab: chrome.tabs.Tab | null = null;
   private startTime: number = 0;
   private sessionStartTime: number = 0;
   private breakAlarmName = 'break-reminder';
+  private syncManager: SyncManager | null = null;
 
   constructor() {
-    console.log('🧠 MindfulScreen Day 3 - Wellness Features Active!');
+    console.log('🧠 MindfulScreen - Wellness Features Active!');
     this.startTracking();
     this.setupBreakAlarms();
     this.loadUserSettings();
+    
+    // Initialize sync manager
+    this.syncManager = new SyncManager();
   }
 
   private async loadUserSettings() {
@@ -21,8 +76,14 @@
         enableNotifications: true,
         goals: {
           dailyProductiveTime: 120, // minutes
-          maxSocialTime: 60 // minutes
-        }
+          maxSocialTime: 60, // minutes
+          maxEntertainmentTime: 120,
+          maxShoppingTime: 60
+        },
+        detailedTracking: false,
+        analyticsEnabled: true,
+        achievementNotifications: true,
+        weeklyReports: true
       };
       await chrome.storage.local.set({ userSettings: defaultSettings });
     }
@@ -91,42 +152,42 @@
   }
 
   private async checkDailyLimits() {
-  const today = new Date().toISOString().split('T')[0];
-  const key = `daily_${today}`;
-  const result = await chrome.storage.local.get([key, 'userSettings']);
-  
-  const dailyData = result[key];
-  const settings = result.userSettings;
+    const today = new Date().toISOString().split('T')[0];
+    const key = `daily_${today}`;
+    const result = await chrome.storage.local.get([key, 'userSettings']);
+    
+    const dailyData = result[key];
+    const settings = result.userSettings;
 
-  if (!dailyData || !settings) return;
+    if (!dailyData || !settings) return;
 
-  const totalMinutes = Math.floor(dailyData.totalTime / 60);
-  const socialMinutes = Math.floor(dailyData.categories.social / 60);
-  const entertainmentMinutes = Math.floor(dailyData.categories.entertainment / 60);
-  const shoppingMinutes = Math.floor(dailyData.categories.shopping / 60);
+    const totalMinutes = Math.floor(dailyData.totalTime / 60);
+    const socialMinutes = Math.floor(dailyData.categories.social / 60);
+    const entertainmentMinutes = Math.floor(dailyData.categories.entertainment / 60);
+    const shoppingMinutes = Math.floor(dailyData.categories.shopping / 60);
 
-  // Check daily time limit
-  if (totalMinutes >= settings.dailyLimit) {
-    this.showLimitNotification('daily', totalMinutes);
+    // Check daily time limit
+    if (totalMinutes >= settings.dailyLimit) {
+      this.showLimitNotification('daily', totalMinutes);
+    }
+
+    // Check social media limit
+    if (socialMinutes >= (settings.goals.maxSocialTime || 60)) {
+      this.showLimitNotification('social', socialMinutes);
+    }
+
+    // Check entertainment limit (if set)
+    if (settings.goals.maxEntertainmentTime && 
+        entertainmentMinutes >= settings.goals.maxEntertainmentTime) {
+      this.showLimitNotification('entertainment', entertainmentMinutes);
+    }
+
+    // Check shopping limit (if set)
+    if (settings.goals.maxShoppingTime && 
+        shoppingMinutes >= settings.goals.maxShoppingTime) {
+      this.showLimitNotification('shopping', shoppingMinutes);
+    }
   }
-
-  // Check social media limit
-  if (socialMinutes >= settings.goals.maxSocialTime) {
-    this.showLimitNotification('social', socialMinutes);
-  }
-
-  // Check entertainment limit (if set)
-  if (settings.goals.maxEntertainmentTime && 
-      entertainmentMinutes >= settings.goals.maxEntertainmentTime) {
-    this.showLimitNotification('entertainment', entertainmentMinutes);
-  }
-
-  // Check shopping limit (if set)
-  if (settings.goals.maxShoppingTime && 
-      shoppingMinutes >= settings.goals.maxShoppingTime) {
-    this.showLimitNotification('shopping', shoppingMinutes);
-  }
-}
 
   private async showBreakNotification(sessionMinutes: number) {
     const settings = await this.getUserSettings();
@@ -157,21 +218,21 @@
   }
 
   private showLimitNotification(type: string, currentMinutes: number) {
-  const messages = {
-    daily: `You've reached your daily limit of ${currentMinutes} minutes. Consider taking a longer break!`,
-    social: `You've spent ${currentMinutes} minutes on social media today. Time to focus!`,
-    entertainment: `You've spent ${currentMinutes} minutes on entertainment. Balance is key!`,
-    shopping: `You've spent ${currentMinutes} minutes shopping. Consider taking a break!`
-  };
+    const messages = {
+      daily: `You've reached your daily limit of ${currentMinutes} minutes. Consider taking a longer break!`,
+      social: `You've spent ${currentMinutes} minutes on social media today. Time to focus!`,
+      entertainment: `You've spent ${currentMinutes} minutes on entertainment. Balance is key!`,
+      shopping: `You've spent ${currentMinutes} minutes shopping. Consider taking a break!`
+    };
 
-  chrome.notifications.create({
-    type: 'basic',
-    iconUrl: 'icons/icon-48.png',
-    title: '🎯 Goal Reminder',
-    message: messages[type as keyof typeof messages] || `Limit reached for ${type}`,
-    priority: 1
-  });
-}
+    chrome.notifications.create({
+      type: 'basic',
+      iconUrl: 'icons/icon-48.png',
+      title: '🎯 Goal Reminder',
+      message: messages[type as keyof typeof messages] || `Limit reached for ${type}`,
+      priority: 1
+    });
+  }
 
   private async handleTabSwitch(tabId: number) {
     this.stopTracking();
@@ -234,6 +295,10 @@
       await this.checkGoals(category, duration);
 
       console.log(`✅ ${categoryInfo.name} activity: ${domain} (${duration}s)`);
+      
+      // Trigger sync if enabled
+      await this.triggerSyncIfNeeded();
+      
     } catch (error) {
       console.error('❌ Error saving activity:', error);
     }
@@ -306,8 +371,14 @@
       enableNotifications: true,
       goals: {
         dailyProductiveTime: 120,
-        maxSocialTime: 60
-      }
+        maxSocialTime: 60,
+        maxEntertainmentTime: 120,
+        maxShoppingTime: 60
+      },
+      detailedTracking: false,
+      analyticsEnabled: true,
+      achievementNotifications: true,
+      weeklyReports: true
     };
   }
 
@@ -348,6 +419,18 @@
     }
   }
 
+  private async triggerSyncIfNeeded() {
+    if (!this.syncManager) return;
+    
+    try {
+      const syncSettings = await chrome.storage.local.get(['syncSettings']);
+      if (syncSettings.syncSettings?.enabled) {
+        this.syncManager.syncNow();
+      }
+    } catch (error) {
+      console.error('Sync trigger failed:', error);
+    }
+  }
 }
 
 // Handle notification clicks
@@ -362,4 +445,5 @@ chrome.notifications.onButtonClicked.addListener((notificationId, buttonIndex) =
   }
 });
 
+// Initialize
 new WellnessTracker();

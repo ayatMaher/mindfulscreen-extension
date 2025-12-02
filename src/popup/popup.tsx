@@ -1,4 +1,4 @@
-﻿import React, { useEffect, useState } from 'react';
+﻿import React, { useEffect, useState, useRef } from 'react';
 import { createRoot } from 'react-dom/client';
 import ActivityFeed from './components/ActivityFeed';
 import CategoryChart from './components/CategoryChart';
@@ -10,6 +10,9 @@ import WeeklyReport from './components/WeeklyReport';
 import AnalyticsDashboard from './components/AnalyticsDashboard';
 import SmartRecommendations from './components/SmartRecommendations';
 import AdvancedSettings from './components/AdvancedSettings';
+import AuthPanel from './components/AuthPanel';
+import SyncSettings from './components/SyncSettings';
+import { BackendService, defaultBackendConfig } from '../utils/backendConfig';
 import './popup.css';
 
 export interface Activity {
@@ -69,9 +72,13 @@ const Popup: React.FC = () => {
   const [userSettings, setUserSettings] = useState<UserSettings | null>(null);
   const [achievements, setAchievements] = useState<Achievement[]>([]);
   const [weeklyData, setWeeklyData] = useState<DailySummary[]>([]);
-  const [activeTab, setActiveTab] = useState<'dashboard' | 'analytics' | 'weekly' | 'data' | 'goals' | 'settings'>('dashboard')
+  const [activeTab, setActiveTab] = useState<'dashboard' | 'analytics' | 'weekly' | 'data' | 'goals' | 'settings' | 'sync'>('dashboard');
   const [loading, setLoading] = useState(true);
-
+  const [backendService] = useState(() => new BackendService(defaultBackendConfig));
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [showMoreMenu, setShowMoreMenu] = useState(false);
+  const moreMenuRef = useRef<HTMLDivElement>(null);
+  
   useEffect(() => {
     loadData();
     
@@ -89,6 +96,18 @@ const Popup: React.FC = () => {
     return () => {
       chrome.storage.onChanged.removeListener(handleStorageChange);
     };
+  }, []);
+
+  // Close more menu when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (moreMenuRef.current && !moreMenuRef.current.contains(event.target as Node)) {
+        setShowMoreMenu(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
   const loadData = async () => {
@@ -131,6 +150,11 @@ const Popup: React.FC = () => {
     setUserSettings(newSettings);
   };
 
+  // Function to trigger sync in background script
+  const triggerSync = () => {
+    chrome.runtime.sendMessage({ type: 'TRIGGER_SYNC' });
+  };
+
   if (loading) {
     return (
       <div className="popup-container">
@@ -142,162 +166,244 @@ const Popup: React.FC = () => {
     );
   }
 
- return (
-  <div className="popup-container">
-    {/* Minimal Header */}
-    <header className="header">
-      <h1>🧠 MindfulScreen</h1>
-      <p>Digital Wellness Tracker</p>
-      <div className="status-indicator">
-        <span className="status-dot active"></span>
-        <span>Tracking Active</span>
-      </div>
-    </header>
-
-    {/* Clean Tabs */}
-    <div className="tabs">
-      <button 
-        className={`tab ${activeTab === 'dashboard' ? 'active' : ''}`}
-        onClick={() => setActiveTab('dashboard')}
-      >
-        📊 Dashboard
-      </button>
-      <button 
-    className={`tab ${activeTab === 'analytics' ? 'active' : ''}`}
-    onClick={() => setActiveTab('analytics')}
-  >
-    📈 Analytics
-  </button>
-      <button 
-        className={`tab ${activeTab === 'goals' ? 'active' : ''}`}
-        onClick={() => setActiveTab('goals')}
-      >
-        🎯 Goals
-      </button>
-        <button 
-  className={`tab ${activeTab === 'weekly' ? 'active' : ''}`}
-  onClick={() => setActiveTab('weekly')}
->
-  📅 Weekly
-</button>
-      <button 
-        className={`tab ${activeTab === 'settings' ? 'active' : ''}`}
-        onClick={() => setActiveTab('settings')}
-      >
-        ⚙️ Settings
-      </button>
-    
-<button 
-  className={`tab ${activeTab === 'data' ? 'active' : ''}`}
-  onClick={() => setActiveTab('data')}
->
-  📁 Data
-</button>
-    </div>
-
-    {/* Dashboard Tab */}
-    {activeTab === 'dashboard' && (
-      <>
-        <div className="card summary-card">
-          <StatsCards dailySummary={dailySummary} />
+  return (
+    <div className="popup-container">
+      {/* Minimal Header */}
+      <header className="header">
+        <h1>🧠 MindfulScreen</h1>
+        <p>Digital Wellness Tracker</p>
+        <div className="status-indicator">
+          <span className="status-dot active"></span>
+          <span>Tracking Active</span>
         </div>
-        
-        {dailySummary && (
-          <div className="card category-card">
-            <CategoryChart dailySummary={dailySummary} />
+      </header>
+
+      {/* Tabs with More Menu */}
+      <div className="tabs-container">
+        <div className="tabs">
+          {/* First 3 Main Tabs */}
+          <button 
+            className={`tab ${activeTab === 'dashboard' ? 'active' : ''}`}
+            onClick={() => {
+              setActiveTab('dashboard');
+              setShowMoreMenu(false);
+            }}
+          >
+            📊 Dashboard
+          </button>
+          
+          <button 
+            className={`tab ${activeTab === 'goals' ? 'active' : ''}`}
+            onClick={() => {
+              setActiveTab('goals');
+              setShowMoreMenu(false);
+            }}
+          >
+            🎯 Goals
+          </button>
+          
+          <button 
+            className={`tab ${activeTab === 'weekly' ? 'active' : ''}`}
+            onClick={() => {
+              setActiveTab('weekly');
+              setShowMoreMenu(false);
+            }}
+          >
+            📅 Weekly
+          </button>
+          
+          {/* More Menu Button */}
+          <div className="more-tab-container" ref={moreMenuRef}>
+            <button 
+              className={`tab more-tab ${showMoreMenu ? 'active' : ''}`}
+              onClick={() => setShowMoreMenu(!showMoreMenu)}
+            >
+              ☰ More
+            </button>
+            
+            {/* More Menu Dropdown */}
+            {showMoreMenu && (
+              <div className="more-menu">
+                <button 
+                  className={`more-menu-item ${activeTab === 'analytics' ? 'active' : ''}`}
+                  onClick={() => {
+                    setActiveTab('analytics');
+                    setShowMoreMenu(false);
+                  }}
+                >
+                  <span className="menu-emoji">📈</span>
+                  <span className="menu-label">Analytics</span>
+                </button>
+                
+                <button 
+                  className={`more-menu-item ${activeTab === 'data' ? 'active' : ''}`}
+                  onClick={() => {
+                    setActiveTab('data');
+                    setShowMoreMenu(false);
+                  }}
+                >
+                  <span className="menu-emoji">📁</span>
+                  <span className="menu-label">Data</span>
+                </button>
+                
+                <button 
+                  className={`more-menu-item ${activeTab === 'settings' ? 'active' : ''}`}
+                  onClick={() => {
+                    setActiveTab('settings');
+                    setShowMoreMenu(false);
+                  }}
+                >
+                  <span className="menu-emoji">⚙️</span>
+                  <span className="menu-label">Settings</span>
+                </button>
+                
+                <button 
+                  className={`more-menu-item ${activeTab === 'sync' ? 'active' : ''}`}
+                  onClick={() => {
+                    setActiveTab('sync');
+                    setShowMoreMenu(false);
+                  }}
+                >
+                  <span className="menu-emoji">☁️</span>
+                  <span className="menu-label">Sync</span>
+                </button>
+              </div>
+            )}
           </div>
-        )}
-        
-        <div className="card activity-card">
-          <ActivityFeed activities={activities} />
         </div>
-        
-        {achievements.length > 0 && (
-          <div className="achievements-card">
-            <h3>🎉 Recent Achievements</h3>
-            <div className="achievements-list">
-              {achievements.slice(-2).map(achievement => (
-                <div key={achievement.id} className="achievement-item">
-                  <span className="achievement-emoji">{achievement.emoji}</span>
-                  <div className="achievement-info">
-                    <div className="achievement-title">{achievement.title}</div>
-                    <div className="achievement-desc">{achievement.description}</div>
-                  </div>
-                </div>
-              ))}
+      </div>
+
+      {/* Dashboard Tab */}
+      {activeTab === 'dashboard' && (
+        <>
+          <div className="card summary-card">
+            <StatsCards dailySummary={dailySummary} />
+          </div>
+          
+          {dailySummary && (
+            <div className="card category-card">
+              <CategoryChart dailySummary={dailySummary} />
             </div>
+          )}
+          
+          <div className="card activity-card">
+            <ActivityFeed activities={activities} />
           </div>
-        )}
-      </>
-    )}
+          
+          {achievements.length > 0 && (
+            <div className="achievements-card">
+              <h3>🎉 Recent Achievements</h3>
+              <div className="achievements-list">
+                {achievements.slice(-2).map(achievement => (
+                  <div key={achievement.id} className="achievement-item">
+                    <span className="achievement-emoji">{achievement.emoji}</span>
+                    <div className="achievement-info">
+                      <div className="achievement-title">{achievement.title}</div>
+                      <div className="achievement-desc">{achievement.description}</div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+        </>
+      )}
 
-{activeTab === 'analytics' && (
-  <>
-    <div className="card">
-      <AnalyticsDashboard 
-        activities={activities}
-        dailySummary={dailySummary}
-        weeklyData={weeklyData}
-      />
-    </div>
-    
-    {userSettings && (
-      <div className="card">
-        <SmartRecommendations 
-          activities={activities}
-          dailySummary={dailySummary}
-          settings={userSettings}
-        />
+      {/* Analytics Tab */}
+      {activeTab === 'analytics' && (
+        <>
+          <div className="card">
+            <AnalyticsDashboard 
+              activities={activities}
+              dailySummary={dailySummary}
+              weeklyData={weeklyData}
+            />
+          </div>
+          
+          {userSettings && (
+            <div className="card">
+              <SmartRecommendations 
+                activities={activities}
+                dailySummary={dailySummary}
+                settings={userSettings}
+              />
+            </div>
+          )}
+          
+          <div className="card activity-card">
+            <ActivityFeed activities={activities} />
+          </div>
+        </>
+      )}
+
+      {/* Goals Tab */}
+      {activeTab === 'goals' && userSettings && (
+        <div className="card goals-card">
+          <GoalsProgress dailySummary={dailySummary} settings={userSettings} />
+        </div>
+      )}
+
+      {/* Weekly Tab */}
+      {activeTab === 'weekly' && (
+        <WeeklyReport weeklyData={weeklyData} />
+      )}
+
+      {/* Data Tab */}
+      {activeTab === 'data' && (
+        <DataManager activities={activities} dailySummary={dailySummary} />
+      )}
+
+      {/* Settings Tab */}
+      {activeTab === 'settings' && userSettings && (
+        <>
+          <div className="card">
+            <SettingsPanel settings={userSettings} onSettingsChange={updateSettings} />
+          </div>
+          <div className="card">
+            <AdvancedSettings settings={userSettings} onSettingsChange={updateSettings} />
+          </div>
+        </>
+      )}
+
+      {/* Sync Tab */}
+      {activeTab === 'sync' && (
+        <>
+          <div className="card">
+            <AuthPanel 
+              backendService={backendService}
+              onAuthChange={setIsAuthenticated}
+            />
+          </div>
+          
+          <div className="card">
+            <SyncSettings 
+              backendService={backendService}
+              onSyncChange={(enabled) => {
+                if (enabled) {
+                  // Trigger initial sync using messaging
+                  triggerSync();
+                }
+              }}
+            />
+          </div>
+        </>
+      )}
+
+      {/* Action Buttons */}
+      <div className="actions">
+        <button className="btn btn-primary" onClick={loadData}>
+          🔄 Refresh
+        </button>
+        <button className="btn btn-secondary" onClick={clearData}>
+          🗑️ Clear Data
+        </button>
       </div>
-    )}
-    
-    <div className="card activity-card">
-      <ActivityFeed activities={activities} />
+
+      <footer className="footer">
+        <p>MindfulScreen • Your Digital Wellness Companion</p>
+      </footer>
     </div>
-  </>
-)}
-    {/* Goals Tab */}
-    {activeTab === 'goals' && userSettings && (
-      <div className="card goals-card">
-        <GoalsProgress dailySummary={dailySummary} settings={userSettings} />
-      </div>
-    )}
-
-    {/* Settings Tab */}
-   {activeTab === 'settings' && userSettings && (
-  <>
-    <div className="card">
-      <SettingsPanel settings={userSettings} onSettingsChange={updateSettings} />
-    </div>
-    <div className="card">
-      <AdvancedSettings settings={userSettings} onSettingsChange={updateSettings} />
-    </div>
-  </>
-)}
-
-    {activeTab === 'weekly' && (
-  <WeeklyReport weeklyData={weeklyData} />
-)}
-
-{activeTab === 'data' && (
-  <DataManager activities={activities} dailySummary={dailySummary} />
-)}
-
-    {/* Action Buttons */}
-    <div className="actions">
-      <button className="btn btn-primary" onClick={loadData}>
-        🔄 Refresh
-      </button>
-      <button className="btn btn-secondary" onClick={clearData}>
-        🗑️ Clear Data
-      </button>
-    </div>
-
-    <footer className="footer">
-      <p>MindfulScreen • Your Digital Wellness Companion</p>
-    </footer>
-  </div>
-);
+  );
 };
 
 // Initialize React app
