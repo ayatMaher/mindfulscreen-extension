@@ -7,9 +7,9 @@ export interface BackendConfig {
 }
 
 export const defaultBackendConfig: BackendConfig = {
-  baseUrl: 'https://vercel.com/ayatmahers-projects/mindfulscreen-extension', // Replace with your actual backend URL
+  baseUrl: 'http://localhost:3002', // Replace with your actual backend URL
   syncInterval: 15, // Sync every 15 minutes
-  enabled: true // Disabled by default until user enables it
+  enabled: false // Disabled by default until user enables it
 };
 
 export class BackendService {
@@ -34,45 +34,96 @@ export class BackendService {
     await chrome.storage.local.set({ authToken: token, userId });
   }
 
-  async login(email: string, password: string): Promise<boolean> {
-    try {
-      const response = await fetch(`${this.config.baseUrl}/api/auth/login`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, password })
-      });
+async login(email: string, password: string): Promise<boolean> {
+  try {
+    // Get device ID
+    const deviceId = await this.getDeviceId();
+    
+    console.log('🔄 Sending login to:', `${this.config.baseUrl}/api/auth/login`);
+    console.log('📱 Device ID:', deviceId);
+    
+    const response = await fetch(`${this.config.baseUrl}/api/auth/login`, {
+      method: 'POST',
+      headers: { 
+        'Content-Type': 'application/json',
+        'Accept': 'application/json'
+      },
+      body: JSON.stringify({ 
+        email: email, 
+        password: password,
+        deviceId: deviceId  // <-- ADD THIS
+      })
+    });
 
-      if (response.ok) {
-        const data = await response.json();
-        await this.saveAuthState(data.token, data.userId);
+    console.log('📡 Login response status:', response.status);
+    
+    if (response.ok) {
+      const data = await response.json();
+      console.log('✅ Login successful:', data);
+      
+      if (data.token && data.user) {
+        await this.saveAuthState(data.token, data.user._id || data.user.id);
         return true;
+      } else {
+        console.error('❌ Missing token or user in response:', data);
+        return false;
       }
-      return false;
-    } catch (error) {
-      console.error('Login failed:', error);
+    } else {
+      const errorText = await response.text();
+      console.error('❌ Login failed:', response.status, errorText);
       return false;
     }
+  } catch (error) {
+    console.error('🔥 Network error during login:', error);
+    return false;
   }
+}
 
-  async register(email: string, password: string, name: string): Promise<boolean> {
-    try {
-      const response = await fetch(`${this.config.baseUrl}/api/auth/register`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, password, name })
-      });
+ async register(email: string, password: string, name: string): Promise<boolean> {
+  try {
+    // Get or create device ID
+    const deviceId = await this.getDeviceId();
+    
+    console.log('🔄 Sending registration to:', `${this.config.baseUrl}/api/auth/register`);
+    console.log('📱 Device ID:', deviceId);
+    
+    const response = await fetch(`${this.config.baseUrl}/api/auth/register`, {
+      method: 'POST',
+      headers: { 
+        'Content-Type': 'application/json',
+        'Accept': 'application/json'
+      },
+      body: JSON.stringify({ 
+        email: email, 
+        password: password, 
+        name: name,
+        deviceId: deviceId  // <-- ADD THIS
+      })
+    });
 
-      if (response.ok) {
-        const data = await response.json();
-        await this.saveAuthState(data.token, data.userId);
+    console.log('📡 Response status:', response.status);
+    
+    if (response.ok) {
+      const data = await response.json();
+      console.log('✅ Registration successful:', data);
+      
+      if (data.token && data.user) {
+        await this.saveAuthState(data.token, data.user._id || data.user.id);
         return true;
+      } else {
+        console.error('❌ Missing token or user in response:', data);
+        return false;
       }
-      return false;
-    } catch (error) {
-      console.error('Registration failed:', error);
+    } else {
+      const errorText = await response.text();
+      console.error('❌ Registration failed:', response.status, errorText);
       return false;
     }
+  } catch (error) {
+    console.error('🔥 Network error during registration:', error);
+    return false;
   }
+}
 
   async syncData(activities: any[], dailySummary: any): Promise<boolean> {
     if (!this.authToken || !this.userId) {
