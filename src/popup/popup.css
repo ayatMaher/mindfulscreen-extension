@@ -1356,31 +1356,41 @@ input:checked + .toggle-slider:before {
   background: var(--secondary);
   color: var(--text-light);
 }
-/* Connection Status */
-.connection-status {
-  padding: 8px 12px;
-  border-radius: 6px;
-  font-size: 12px;
-  font-weight: 600;
-  margin-bottom: 12px;
-  text-align: center;
+.btn.success {
+  background-color: var(--success);
+  color: white;
+}
+
+.btn.error {
+  background-color: var(--danger);
+  color: white;
+}
+
+.sync-status-indicator {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.75rem;
+  margin-left: 8px;
 }
 
 .status-dot {
-  display: inline-block;
   width: 8px;
   height: 8px;
   border-radius: 50%;
-  margin-right: 6px;
 }
 
-.status-dot.connected {
-  background-color: #10b981;
-  animation: pulse 2s infinite;
+.status-dot.syncing {
+  background-color: var(--warning);
+  animation: pulse 1s infinite;
 }
 
-.status-dot.disconnected {
-  background-color: #ef4444;
+.status-dot.success {
+  background-color: var(--success);
+}
+
+.status-dot.error {
+  background-color: var(--danger);
 }
 
 @keyframes pulse {

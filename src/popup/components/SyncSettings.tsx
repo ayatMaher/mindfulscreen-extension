@@ -12,6 +12,7 @@ const SyncSettings: React.FC<SyncSettingsProps> = ({ backendService, onSyncChang
   const [syncInterval, setSyncInterval] = useState(15);
   const [lastSync, setLastSync] = useState<string | null>(null);
   const [syncing, setSyncing] = useState(false);
+  const [syncStatus, setSyncStatus] = useState<'idle' | 'syncing' | 'success' | 'error'>('idle');
 
   useEffect(() => {
     loadSettings();
@@ -48,6 +49,8 @@ const SyncSettings: React.FC<SyncSettingsProps> = ({ backendService, onSyncChang
     if (!backendService.isAuthenticated()) return;
     
     setSyncing(true);
+    setSyncStatus('syncing');
+
     try {
       // Get current data
       const today = new Date().toISOString().split('T')[0];
@@ -62,13 +65,19 @@ const SyncSettings: React.FC<SyncSettingsProps> = ({ backendService, onSyncChang
         const now = new Date().toLocaleTimeString();
         await chrome.storage.local.set({ lastSyncTime: now });
         setLastSync(now);
+        setSyncStatus('success');
+         // Clear success status after 3 seconds
+        setTimeout(() => setSyncStatus('idle'), 3000);
         alert('Data synced successfully!');
       } else {
+         setSyncStatus('error');
+      setTimeout(() => setSyncStatus('idle'), 3000);
         alert('Sync failed. Please try again.');
       }
     } catch (error) {
-      console.error('Manual sync failed:', error);
-      alert('Sync failed. Please check your connection.');
+        console.error('Manual sync failed:', error);
+    setSyncStatus('error');
+    setTimeout(() => setSyncStatus('idle'), 3000);
     } finally {
       setSyncing(false);
     }
@@ -124,11 +133,13 @@ const SyncSettings: React.FC<SyncSettingsProps> = ({ backendService, onSyncChang
 
             <div className="sync-actions">
               <button
-                className="btn btn-secondary"
+                 className={`btn btn-secondary ${syncStatus === 'success' ? 'success' : ''} ${syncStatus === 'error' ? 'error' : ''}`}
                 onClick={handleManualSync}
                 disabled={syncing || !backendService.isAuthenticated()}
               >
-                {syncing ? 'Syncing...' : '🔄 Sync Now'}
+                {syncing ? '🔄 Syncing...' : 
+   syncStatus === 'success' ? '✅ Synced!' :
+   syncStatus === 'error' ? '❌ Failed' : '🔄 Sync Now'}
               </button>
               
               <div className="last-sync">

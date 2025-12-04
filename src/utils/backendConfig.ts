@@ -126,35 +126,60 @@ async login(email: string, password: string): Promise<boolean> {
 }
 
   async syncData(activities: any[], dailySummary: any): Promise<boolean> {
-    if (!this.authToken || !this.userId) {
-      console.log('Not authenticated, skipping sync');
-      return false;
-    }
-
-    try {
-      const syncData = {
-        userId: this.userId,
-        activities,
-        dailySummary,
-        timestamp: new Date().toISOString(),
-        deviceId: await this.getDeviceId()
-      };
-
-      const response = await fetch(`${this.config.baseUrl}/api/data/sync`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${this.authToken}`
-        },
-        body: JSON.stringify(syncData)
-      });
-
-      return response.ok;
-    } catch (error) {
-      console.error('Sync failed:', error);
-      return false;
-    }
+  if (!this.authToken || !this.userId) {
+    console.log('Not authenticated, skipping sync');
+    return false;
   }
+
+  try {
+    const deviceId = await this.getDeviceId();
+       const cleanActivities = activities.map(activity => {
+      const { id, ...rest } = activity;
+      return {
+        ...rest,
+        // Keep extensionId if you want to track duplicates
+        extensionId: id
+      };
+    });
+    const syncData = {
+      userId: this.userId,
+      deviceId: deviceId,  // Add deviceId
+      activities: cleanActivities,
+      dailySummary,
+      timestamp: new Date().toISOString()
+    };
+
+    console.log('🔄 Sending sync data:', {
+      userId: this.userId,
+      activities: cleanActivities.length,
+      hasSummary: !!dailySummary
+    });
+
+    const response = await fetch(`${this.config.baseUrl}/api/data/sync`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${this.authToken}`
+      },
+      body: JSON.stringify(syncData)
+    });
+
+    console.log('📡 Sync response status:', response.status);
+    
+    if (response.ok) {
+      const data = await response.json();
+      console.log('✅ Sync successful:', data);
+      return true;
+    } else {
+      const errorText = await response.text();
+      console.error('❌ Sync failed:', response.status, errorText);
+      return false;
+    }
+  } catch (error) {
+    console.error('🔥 Network error during sync:', error);
+    return false;
+  }
+}
 
   async getInsights(): Promise<any> {
     if (!this.authToken || !this.userId) return null;
