@@ -9,7 +9,7 @@ const StatsCards: React.FC<StatsCardsProps> = ({ dailySummary }) => {
   const formatTime = (seconds: number): string => {
     const hours = Math.floor(seconds / 3600);
     const minutes = Math.floor((seconds % 3600) / 60);
-    
+
     if (hours > 0) {
       return `${hours}h ${minutes}m`;
     }
@@ -18,10 +18,10 @@ const StatsCards: React.FC<StatsCardsProps> = ({ dailySummary }) => {
 
   const getProductivityScore = (): number => {
     if (!dailySummary) return 0;
-    
+
     const productiveTime = dailySummary.categories.productive;
     const totalTime = dailySummary.totalTime;
-    
+
     return totalTime > 0 ? Math.round((productiveTime / totalTime) * 100) : 0;
   };
 

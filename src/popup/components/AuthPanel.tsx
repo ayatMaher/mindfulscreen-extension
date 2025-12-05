@@ -24,7 +24,7 @@ const AuthPanel: React.FC<AuthPanelProps> = ({ backendService, onAuthChange }) =
 
     try {
       let success: boolean;
-      
+
       if (isLogin) {
         success = await backendService.login(email, password);
         if (success) {
@@ -67,7 +67,7 @@ const AuthPanel: React.FC<AuthPanelProps> = ({ backendService, onAuthChange }) =
             <span className="auth-emoji">✅</span>
             <span className="auth-message">You are signed in</span>
           </div>
-          <button 
+          <button
             className="btn btn-secondary"
             onClick={handleLogout}
             disabled={loading}
@@ -82,14 +82,14 @@ const AuthPanel: React.FC<AuthPanelProps> = ({ backendService, onAuthChange }) =
   return (
     <div className="auth-card">
       <h3>🔐 {isLogin ? 'Sign In' : 'Create Account'}</h3>
-      
+
       {error && (
         <div className="auth-error">
           <span className="error-emoji">❌</span>
           <span className="error-message">{error}</span>
         </div>
       )}
-      
+
       {success && (
         <div className="auth-success">
           <span className="success-emoji">✅</span>
@@ -111,7 +111,7 @@ const AuthPanel: React.FC<AuthPanelProps> = ({ backendService, onAuthChange }) =
             />
           </div>
         )}
-        
+
         <div className="form-group">
           <label>Email</label>
           <input
@@ -123,7 +123,7 @@ const AuthPanel: React.FC<AuthPanelProps> = ({ backendService, onAuthChange }) =
             disabled={loading}
           />
         </div>
-        
+
         <div className="form-group">
           <label>Password</label>
           <input
@@ -137,8 +137,8 @@ const AuthPanel: React.FC<AuthPanelProps> = ({ backendService, onAuthChange }) =
           />
         </div>
 
-        <button 
-          type="submit" 
+        <button
+          type="submit"
           className="btn btn-primary"
           disabled={loading}
         >

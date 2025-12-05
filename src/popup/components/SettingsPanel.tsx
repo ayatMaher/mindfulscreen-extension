@@ -74,7 +74,7 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({ settings, onSettingsChang
 
       <div className="goals-settings">
         <h4>🎯 Daily Goals</h4>
-        
+
         <div className="setting-group">
           <label className="setting-label">
             <span>💼 Productive Time Goal</span>

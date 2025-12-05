@@ -88,7 +88,7 @@ const NotificationSettings: React.FC<NotificationSettingsProps> = ({
 
       <div className="settings-section">
         <h4>📱 Notification Types</h4>
-        
+
         {[
           { key: 'breakReminders', label: 'Break Reminders', emoji: '🌿' },
           { key: 'dailyLimits', label: 'Daily Limits', emoji: '⏰' },
@@ -111,7 +111,7 @@ const NotificationSettings: React.FC<NotificationSettingsProps> = ({
 
       <div className="settings-section">
         <h4>⏱️ Break Schedule</h4>
-        
+
         <div className="setting-group">
           <label className="setting-label">
             <span>Enable Scheduled Breaks</span>
@@ -163,7 +163,7 @@ const NotificationSettings: React.FC<NotificationSettingsProps> = ({
 
       <div className="settings-section">
         <h4>🔧 Advanced Options</h4>
-        
+
         <div className="setting-group">
           <label className="setting-label">
             <span>Snooze Duration (minutes)</span>

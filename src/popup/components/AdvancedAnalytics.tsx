@@ -36,13 +36,13 @@ const AdvancedAnalytics: React.FC<AdvancedAnalyticsProps> = ({ weeklyData, activ
 
     // Patterns
     const productiveDays = data.filter(day => day.categories.productive >= 3600).length;
-    
+
     // Find most/least productive days
     let mostProductiveIndex = 0;
     let leastProductiveIndex = 0;
     let maxProductive = data[0]?.categories.productive || 0;
     let minProductive = data[0]?.categories.productive || 0;
-    
+
     for (let i = 1; i < data.length; i++) {
       if (data[i].categories.productive > maxProductive) {
         maxProductive = data[i].categories.productive;
@@ -70,7 +70,7 @@ const AdvancedAnalytics: React.FC<AdvancedAnalyticsProps> = ({ weeklyData, activ
       productiveTime: Math.floor(productiveTime / 3600),
       socialTime: Math.floor(socialTime / 3600),
       avgDailyTime: Math.floor(avgDailyTime / 60),
-      
+
       productivityPercentage: Math.round(productivityPercentage),
       socialPercentage: Math.round(socialPercentage),
       entertainmentPercentage: Math.round(entertainmentPercentage),
@@ -84,7 +84,7 @@ const AdvancedAnalytics: React.FC<AdvancedAnalyticsProps> = ({ weeklyData, activ
         time: Math.floor(minProductive / 3600),
         day: getDayName(leastProductiveIndex, timeRange, data.length)
       },
-      
+
       topDomains,
       uniqueDomains: Object.keys(domainStats).length,
 
@@ -104,7 +104,7 @@ const AdvancedAnalytics: React.FC<AdvancedAnalyticsProps> = ({ weeklyData, activ
       const targetDate = new Date(today);
       // Go backwards from today: today is index 0, yesterday is index 1, etc.
       targetDate.setDate(today.getDate() - (dataLength - 1 - index));
-      
+
       return targetDate.toLocaleDateString('en-US', {
         weekday: 'short',
         month: 'short',
@@ -164,13 +164,13 @@ const AdvancedAnalytics: React.FC<AdvancedAnalyticsProps> = ({ weeklyData, activ
       <div className="analytics-header">
         <h3>📈 Advanced Analytics</h3>
         <div className="time-range-selector">
-          <button 
+          <button
             className={`time-range-btn ${timeRange === 'week' ? 'active' : ''}`}
             onClick={() => setTimeRange('week')}
           >
             This Week
           </button>
-          <button 
+          <button
             className={`time-range-btn ${timeRange === 'month' ? 'active' : ''}`}
             onClick={() => setTimeRange('month')}
           >
@@ -181,19 +181,19 @@ const AdvancedAnalytics: React.FC<AdvancedAnalyticsProps> = ({ weeklyData, activ
 
       {/* Summary Stats */}
       <div className="summary-stats">
-        <div className="summary-stat">
+        <div className="summary-stat tooltip" data-tooltip="Total browsing time in selected period">
           <div className="stat-value">{analytics.totalTime}h</div>
           <div className="stat-label">Total Time</div>
         </div>
-        <div className="summary-stat">
+        <div className="summary-stat tooltip" data-tooltip="Time spent on productive websites">
           <div className="stat-value">{analytics.productiveTime}h</div>
           <div className="stat-label">Productive</div>
         </div>
-        <div className="summary-stat">
+        <div className="summary-stat tooltip" data-tooltip="Days with 1+ hour of productive time">
           <div className="stat-value">{analytics.productiveDays}/{analytics.daysTracked}</div>
           <div className="stat-label">Productive Days</div>
         </div>
-        <div className="summary-stat">
+        <div className="summary-stat tooltip" data-tooltip="Unique websites visited">
           <div className="stat-value">{analytics.uniqueDomains}</div>
           <div className="stat-label">Unique Sites</div>
         </div>
@@ -206,8 +206,8 @@ const AdvancedAnalytics: React.FC<AdvancedAnalyticsProps> = ({ weeklyData, activ
           <div className="score-value">{analytics.productivityPercentage}%</div>
           <div className="score-rating">{getProductivityRating(analytics.productivityPercentage)}</div>
           <div className="score-bar">
-            <div 
-              className="score-fill" 
+            <div
+              className="score-fill"
               style={{ width: `${Math.min(analytics.productivityPercentage, 100)}%` }}
             ></div>
           </div>

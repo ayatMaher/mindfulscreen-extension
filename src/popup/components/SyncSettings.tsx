@@ -32,7 +32,7 @@ const SyncSettings: React.FC<SyncSettingsProps> = ({ backendService, onSyncChang
     setSyncEnabled(enabled);
     setSyncInterval(interval);
     onSyncChange(enabled);
-    
+
     if (enabled && backendService.isAuthenticated()) {
       // Schedule sync
       scheduleSync(interval);
@@ -47,7 +47,7 @@ const SyncSettings: React.FC<SyncSettingsProps> = ({ backendService, onSyncChang
 
   const handleManualSync = async () => {
     if (!backendService.isAuthenticated()) return;
-    
+
     setSyncing(true);
     setSyncStatus('syncing');
 
@@ -55,29 +55,29 @@ const SyncSettings: React.FC<SyncSettingsProps> = ({ backendService, onSyncChang
       // Get current data
       const today = new Date().toISOString().split('T')[0];
       const result = await chrome.storage.local.get(['activities', `daily_${today}`]);
-      
+
       const success = await backendService.syncData(
         result.activities || [],
         result[`daily_${today}`] || null
       );
-      
+
       if (success) {
         const now = new Date().toLocaleTimeString();
         await chrome.storage.local.set({ lastSyncTime: now });
         setLastSync(now);
         setSyncStatus('success');
-         // Clear success status after 3 seconds
+        // Clear success status after 3 seconds
         setTimeout(() => setSyncStatus('idle'), 3000);
         alert('Data synced successfully!');
       } else {
-         setSyncStatus('error');
-      setTimeout(() => setSyncStatus('idle'), 3000);
+        setSyncStatus('error');
+        setTimeout(() => setSyncStatus('idle'), 3000);
         alert('Sync failed. Please try again.');
       }
     } catch (error) {
-        console.error('Manual sync failed:', error);
-    setSyncStatus('error');
-    setTimeout(() => setSyncStatus('idle'), 3000);
+      console.error('Manual sync failed:', error);
+      setSyncStatus('error');
+      setTimeout(() => setSyncStatus('idle'), 3000);
     } finally {
       setSyncing(false);
     }
@@ -91,7 +91,7 @@ const SyncSettings: React.FC<SyncSettingsProps> = ({ backendService, onSyncChang
   return (
     <div className="sync-settings-card">
       <h3>☁️ Cloud Sync Settings</h3>
-      
+
       <div className="sync-status">
         <div className="sync-status-item">
           <span className="sync-label">Cloud Sync</span>
@@ -105,7 +105,7 @@ const SyncSettings: React.FC<SyncSettingsProps> = ({ backendService, onSyncChang
             <span className="toggle-slider"></span>
           </label>
         </div>
-        
+
         {!backendService.isAuthenticated() && (
           <div className="sync-warning">
             <span className="warning-emoji">⚠️</span>
@@ -133,15 +133,15 @@ const SyncSettings: React.FC<SyncSettingsProps> = ({ backendService, onSyncChang
 
             <div className="sync-actions">
               <button
-                 className={`btn btn-secondary ${syncStatus === 'success' ? 'success' : ''} ${syncStatus === 'error' ? 'error' : ''}`}
+                className={`btn btn-secondary ${syncStatus === 'success' ? 'success' : ''} ${syncStatus === 'error' ? 'error' : ''}`}
                 onClick={handleManualSync}
                 disabled={syncing || !backendService.isAuthenticated()}
               >
-                {syncing ? '🔄 Syncing...' : 
-   syncStatus === 'success' ? '✅ Synced!' :
-   syncStatus === 'error' ? '❌ Failed' : '🔄 Sync Now'}
+                {syncing ? '🔄 Syncing...' :
+                  syncStatus === 'success' ? '✅ Synced!' :
+                    syncStatus === 'error' ? '❌ Failed' : '🔄 Sync Now'}
               </button>
-              
+
               <div className="last-sync">
                 {formatLastSync()}
               </div>

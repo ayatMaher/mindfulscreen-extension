@@ -34,9 +34,9 @@ const AdvancedSettings: React.FC<AdvancedSettingsProps> = ({
   const handleGoalChange = (goalKey: keyof UserSettings['goals'], value: number) => {
     const newSettings = {
       ...localSettings,
-      goals: { 
-        ...localSettings.goals, 
-        [goalKey]: value 
+      goals: {
+        ...localSettings.goals,
+        [goalKey]: value
       }
     };
     setLocalSettings(newSettings);
@@ -49,7 +49,7 @@ const AdvancedSettings: React.FC<AdvancedSettingsProps> = ({
 
       <div className="settings-section">
         <h4>📊 Tracking Preferences</h4>
-        
+
         <div className="setting-group">
           <label className="setting-label">
             <span>🔍 Detailed Tracking</span>
@@ -81,7 +81,7 @@ const AdvancedSettings: React.FC<AdvancedSettingsProps> = ({
 
       <div className="settings-section">
         <h4>🎯 Advanced Goals</h4>
-        
+
         <div className="setting-group">
           <label className="setting-label">
             <span>🎮 Entertainment Limit</span>
@@ -121,7 +121,7 @@ const AdvancedSettings: React.FC<AdvancedSettingsProps> = ({
 
       <div className="settings-section">
         <h4>🔔 Notification Preferences</h4>
-        
+
         <div className="setting-group">
           <label className="setting-label">
             <span>💡 Achievement Notifications</span>
@@ -152,7 +152,7 @@ const AdvancedSettings: React.FC<AdvancedSettingsProps> = ({
       </div>
 
       <div className="settings-actions">
-        <button 
+        <button
           className="btn btn-secondary"
           onClick={() => {
             const defaultSettings: UserSettings = {

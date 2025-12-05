@@ -22,13 +22,13 @@ const SmartRecommendations: React.FC<SmartRecommendationsProps> = ({
 }) => {
   const getRecommendations = () => {
     const recommendations: Recommendation[] = [];
-    
+
     if (!dailySummary) return recommendations;
 
     const socialTime = dailySummary.categories.social;
     const productiveTime = dailySummary.categories.productive;
     const totalTime = dailySummary.totalTime;
-    
+
     // Social media usage recommendation
     if (socialTime > settings.goals.maxSocialTime * 60) {
       recommendations.push({

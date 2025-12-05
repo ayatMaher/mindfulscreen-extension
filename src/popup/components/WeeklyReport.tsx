@@ -6,14 +6,14 @@ interface WeeklyReportProps {
 }
 
 const WeeklyReport: React.FC<WeeklyReportProps> = ({ weeklyData }) => {
-  
+
   const calculateWeeklyStats = () => {
     const totalTime = weeklyData.reduce((sum, day) => sum + day.totalTime, 0);
     const productiveTime = weeklyData.reduce((sum, day) => sum + day.categories.productive, 0);
     const avgProductivity = totalTime > 0 ? (productiveTime / totalTime) * 100 : 0;
-    
+
     const daysWithData = weeklyData.filter(day => day.totalTime > 0).length;
-    
+
     return {
       totalTime: Math.floor(totalTime / 3600), // hours
       productiveTime: Math.floor(productiveTime / 3600),
@@ -40,7 +40,7 @@ const WeeklyReport: React.FC<WeeklyReportProps> = ({ weeklyData }) => {
   return (
     <div className="weekly-report-card">
       <h3>📅 Weekly Report</h3>
-      
+
       <div className="report-header">
         <div className="week-stats">
           <div className="week-stat">
@@ -73,16 +73,16 @@ const WeeklyReport: React.FC<WeeklyReportProps> = ({ weeklyData }) => {
                 <div className="day-bar">
                   {dayData && dayData.totalTime > 0 ? (
                     <>
-                      <div 
-                        className="day-productive" 
-                        style={{ 
-                          width: `${(dayData.categories.productive / dayData.totalTime) * 100}%` 
+                      <div
+                        className="day-productive"
+                        style={{
+                          width: `${(dayData.categories.productive / dayData.totalTime) * 100}%`
                         }}
                       ></div>
-                      <div 
+                      <div
                         className="day-other"
-                        style={{ 
-                          width: `${((dayData.totalTime - dayData.categories.productive) / dayData.totalTime) * 100}%` 
+                        style={{
+                          width: `${((dayData.totalTime - dayData.categories.productive) / dayData.totalTime) * 100}%`
                         }}
                       ></div>
                     </>

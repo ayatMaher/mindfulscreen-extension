@@ -24,9 +24,9 @@ const BreakHistory: React.FC = () => {
   };
 
   const formatTime = (timestamp: string) => {
-    return new Date(timestamp).toLocaleTimeString([], { 
-      hour: '2-digit', 
-      minute: '2-digit' 
+    return new Date(timestamp).toLocaleTimeString([], {
+      hour: '2-digit',
+      minute: '2-digit'
     });
   };
 
@@ -51,7 +51,7 @@ const BreakHistory: React.FC = () => {
   return (
     <div className="break-history-card">
       <h3>📝 Break History</h3>
-      
+
       {breakEvents.length === 0 ? (
         <div className="empty-state">
           <p>No break reminders yet</p>
@@ -77,8 +77,8 @@ const BreakHistory: React.FC = () => {
           ))}
         </div>
       )}
-      
-      <button 
+
+      <button
         className="btn btn-secondary"
         onClick={loadBreakHistory}
         style={{ marginTop: '12px', width: '100%' }}

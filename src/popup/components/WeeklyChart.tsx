@@ -24,21 +24,21 @@ const WeeklyChart: React.FC<WeeklyChartProps> = ({ weeklyData }) => {
       <div className="chart-container">
         {weeklyData.map((day, index) => {
           const percentage = (day.totalTime / getMaxTime()) * 100;
-          const productivePercentage = day.categories.productive > 0 
-            ? (day.categories.productive / day.totalTime) * 100 
+          const productivePercentage = day.categories.productive > 0
+            ? (day.categories.productive / day.totalTime) * 100
             : 0;
-          
+
           return (
             <div key={index} className="chart-bar-container">
               <div className="chart-bar-label">{days[index]}</div>
               <div className="chart-bar">
-                <div 
-                  className="chart-bar-productive" 
+                <div
+                  className="chart-bar-productive"
                   style={{ height: `${percentage * 0.7}%` }}
                   title={`Productive: ${formatTime(day.categories.productive)}`}
                 ></div>
-                <div 
-                  className="chart-bar-other" 
+                <div
+                  className="chart-bar-other"
                   style={{ height: `${percentage * 0.3}%` }}
                   title={`Other: ${formatTime(day.totalTime - day.categories.productive)}`}
                 ></div>

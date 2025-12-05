@@ -15,18 +15,18 @@ const AnalyticsDashboard: React.FC<AnalyticsDashboardProps> = ({
 }) => {
   const calculateProductivityTrend = () => {
     if (weeklyData.length < 2) return 0;
-    
-    const recentProductivity = weeklyData[weeklyData.length - 1].categories.productive / 
-                             weeklyData[weeklyData.length - 1].totalTime;
-    const previousProductivity = weeklyData[weeklyData.length - 2].categories.productive / 
-                                weeklyData[weeklyData.length - 2].totalTime;
-    
+
+    const recentProductivity = weeklyData[weeklyData.length - 1].categories.productive /
+      weeklyData[weeklyData.length - 1].totalTime;
+    const previousProductivity = weeklyData[weeklyData.length - 2].categories.productive /
+      weeklyData[weeklyData.length - 2].totalTime;
+
     return ((recentProductivity - previousProductivity) / previousProductivity) * 100;
   };
 
   const getMostVisitedDomains = () => {
     const domainMap: { [domain: string]: number } = {};
-    
+
     activities.forEach(activity => {
       domainMap[activity.domain] = (domainMap[activity.domain] || 0) + activity.duration;
     });
@@ -38,7 +38,7 @@ const AnalyticsDashboard: React.FC<AnalyticsDashboardProps> = ({
 
   const calculateAverageSessionLength = () => {
     if (activities.length === 0) return 0;
-    
+
     const totalDuration = activities.reduce((sum, activity) => sum + activity.duration, 0);
     return Math.floor(totalDuration / activities.length);
   };
@@ -50,7 +50,7 @@ const AnalyticsDashboard: React.FC<AnalyticsDashboardProps> = ({
   return (
     <div className="analytics-card">
       <h3>📈 Advanced Analytics</h3>
-      
+
       <div className="analytics-grid">
         <div className="metric-card">
           <div className="metric-header">

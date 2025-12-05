@@ -16,6 +16,8 @@ import { BackendService, defaultBackendConfig } from '../utils/backendConfig';
 import NotificationSettings from './components/NotificationSettings';
 import BreakHistory from './components/BreakHistory';
 import AdvancedAnalytics from './components/AdvancedAnalytics';
+import AchievementBadges from './components/AchievementBadges';
+
 import './popup.css';
 
 export interface Activity {
@@ -68,14 +70,14 @@ export interface UserSettings {
   goals: {
     dailyProductiveTime: number;
     maxSocialTime: number;
-    maxEntertainmentTime?: number; 
-    maxShoppingTime?: number;      
+    maxEntertainmentTime?: number;
+    maxShoppingTime?: number;
   };
-  detailedTracking?: boolean;     
+  detailedTracking?: boolean;
   analyticsEnabled?: boolean;
   achievementNotifications?: boolean;
   weeklyReports?: boolean;
-   notificationSettings?: NotificationSettings;
+  notificationSettings?: NotificationSettings;
   breakSchedule?: BreakSchedule;
 }
 
@@ -94,16 +96,17 @@ const Popup: React.FC = () => {
   const [userSettings, setUserSettings] = useState<UserSettings | null>(null);
   const [achievements, setAchievements] = useState<Achievement[]>([]);
   const [weeklyData, setWeeklyData] = useState<DailySummary[]>([]);
-  const [activeTab, setActiveTab] = useState<'dashboard' | 'analytics' | 'weekly' | 'data' | 'goals' | 'settings' | 'sync' |'notifications'>('dashboard');
+  const [activeTab, setActiveTab] = useState<'dashboard' | 'analytics' | 'weekly' | 'data' | 'goals' | 'settings' | 'sync' | 'notifications'>('dashboard');
   const [loading, setLoading] = useState(true);
   const [backendService] = useState(() => new BackendService(defaultBackendConfig));
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [showMoreMenu, setShowMoreMenu] = useState(false);
+  const [isRefreshing, setIsRefreshing] = useState(false); // ADD THIS
   const moreMenuRef = useRef<HTMLDivElement>(null);
-  
+
   useEffect(() => {
     loadData();
-    
+
     const handleStorageChange = (
       changes: { [key: string]: chrome.storage.StorageChange },
       areaName: string
@@ -114,7 +117,7 @@ const Popup: React.FC = () => {
     };
 
     chrome.storage.onChanged.addListener(handleStorageChange);
-    
+
     return () => {
       chrome.storage.onChanged.removeListener(handleStorageChange);
     };
@@ -137,33 +140,42 @@ const Popup: React.FC = () => {
       setLoading(true);
       const today = new Date().toISOString().split('T')[0];
       const result = await chrome.storage.local.get([
-        'activities', 
+        'activities',
         `daily_${today}`,
         'userSettings',
         'achievements',
         'weeklyData'
       ]);
-      
+
       const activitiesData: Activity[] = result.activities || [];
       setActivities(activitiesData.slice(-6).reverse());
       setDailySummary(result[`daily_${today}`] || null);
       setUserSettings(result.userSettings || null);
       setAchievements(result.achievements || []);
-      setWeeklyData(result.weeklyData || generateSampleWeeklyData());
 
-       // Check if weeklyData exists, otherwise generate sample
-    let weekly = result.weeklyData;
-    if (!weekly || !Array.isArray(weekly)) {
-      weekly = generateSampleWeeklyData();
-      // Save it for next time
-      await chrome.storage.local.set({ weeklyData: weekly });
-    }
-    setWeeklyData(weekly);
+      // Check if weeklyData exists, otherwise generate sample
+      let weekly = result.weeklyData;
+      if (!weekly || !Array.isArray(weekly)) {
+        weekly = generateSampleWeeklyData();
+        await chrome.storage.local.set({ weeklyData: weekly });
+      }
+      setWeeklyData(weekly);
     } catch (error) {
       console.error('Error loading data:', error);
     } finally {
       setLoading(false);
     }
+  };
+
+  // ADD THIS FUNCTION
+  const handleRefresh = async () => {
+    setIsRefreshing(true);
+    await loadData();
+
+    // Show success animation
+    setTimeout(() => {
+      setIsRefreshing(false);
+    }, 1000);
   };
 
   const clearData = async () => {
@@ -213,7 +225,7 @@ const Popup: React.FC = () => {
       <div className="tabs-container">
         <div className="tabs">
           {/* First 3 Main Tabs */}
-          <button 
+          <button
             className={`tab ${activeTab === 'dashboard' ? 'active' : ''}`}
             onClick={() => {
               setActiveTab('dashboard');
@@ -222,8 +234,8 @@ const Popup: React.FC = () => {
           >
             📊 Dashboard
           </button>
-          
-          <button 
+
+          <button
             className={`tab ${activeTab === 'goals' ? 'active' : ''}`}
             onClick={() => {
               setActiveTab('goals');
@@ -232,8 +244,8 @@ const Popup: React.FC = () => {
           >
             🎯 Goals
           </button>
-          
-          <button 
+
+          <button
             className={`tab ${activeTab === 'weekly' ? 'active' : ''}`}
             onClick={() => {
               setActiveTab('weekly');
@@ -242,20 +254,20 @@ const Popup: React.FC = () => {
           >
             📅 Weekly
           </button>
-          
+
           {/* More Menu Button */}
           <div className="more-tab-container" ref={moreMenuRef}>
-            <button 
+            <button
               className={`tab more-tab ${showMoreMenu ? 'active' : ''}`}
               onClick={() => setShowMoreMenu(!showMoreMenu)}
             >
               ☰ More
             </button>
-            
+
             {/* More Menu Dropdown */}
             {showMoreMenu && (
               <div className="more-menu">
-                <button 
+                <button
                   className={`more-menu-item ${activeTab === 'analytics' ? 'active' : ''}`}
                   onClick={() => {
                     setActiveTab('analytics');
@@ -265,8 +277,8 @@ const Popup: React.FC = () => {
                   <span className="menu-emoji">📈</span>
                   <span className="menu-label">Analytics</span>
                 </button>
-                
-                <button 
+
+                <button
                   className={`more-menu-item ${activeTab === 'data' ? 'active' : ''}`}
                   onClick={() => {
                     setActiveTab('data');
@@ -276,8 +288,8 @@ const Popup: React.FC = () => {
                   <span className="menu-emoji">📁</span>
                   <span className="menu-label">Data</span>
                 </button>
-                
-                <button 
+
+                <button
                   className={`more-menu-item ${activeTab === 'settings' ? 'active' : ''}`}
                   onClick={() => {
                     setActiveTab('settings');
@@ -287,8 +299,8 @@ const Popup: React.FC = () => {
                   <span className="menu-emoji">⚙️</span>
                   <span className="menu-label">Settings</span>
                 </button>
-                
-                <button 
+
+                <button
                   className={`more-menu-item ${activeTab === 'sync' ? 'active' : ''}`}
                   onClick={() => {
                     setActiveTab('sync');
@@ -299,7 +311,7 @@ const Popup: React.FC = () => {
                   <span className="menu-label">Sync</span>
                 </button>
 
-                <button 
+                <button
                   className={`more-menu-item ${activeTab === 'notifications' ? 'active' : ''}`}
                   onClick={() => {
                     setActiveTab('notifications');
@@ -321,17 +333,17 @@ const Popup: React.FC = () => {
           <div className="card summary-card">
             <StatsCards dailySummary={dailySummary} />
           </div>
-          
+
           {dailySummary && (
             <div className="card category-card">
               <CategoryChart dailySummary={dailySummary} />
             </div>
           )}
-          
+
           <div className="card activity-card">
             <ActivityFeed activities={activities} />
           </div>
-          
+
           {achievements.length > 0 && (
             <div className="achievements-card">
               <h3>🎉 Recent Achievements</h3>
@@ -351,32 +363,36 @@ const Popup: React.FC = () => {
         </>
       )}
 
-      
       {/* Analytics Tab */}
-{activeTab === 'analytics' && (
-  <>
-    <div className="card">
-      <AdvancedAnalytics 
-        weeklyData={weeklyData}
-        activities={activities}
-      />
-    </div>
-    
-    {userSettings && (
-      <div className="card">
-        <SmartRecommendations 
-          activities={activities}
-          dailySummary={dailySummary}
-          settings={userSettings}
-        />
-      </div>
-    )}
-    
-    <div className="card activity-card">
-      <ActivityFeed activities={activities} />
-    </div>
-  </>
-)}
+      {activeTab === 'analytics' && (
+        <>
+          <div className="card">
+            <AdvancedAnalytics
+              weeklyData={weeklyData}
+              activities={activities}
+            />
+          </div>
+
+          <div className="card">
+            <AchievementBadges backendService={backendService} />
+          </div>
+
+          {userSettings && (
+            <div className="card">
+              <SmartRecommendations
+                activities={activities}
+                dailySummary={dailySummary}
+                settings={userSettings}
+              />
+            </div>
+          )}
+
+          <div className="card activity-card">
+            <ActivityFeed activities={activities} />
+          </div>
+        </>
+      )}
+
       {/* Goals Tab */}
       {activeTab === 'goals' && userSettings && (
         <div className="card goals-card">
@@ -410,18 +426,17 @@ const Popup: React.FC = () => {
       {activeTab === 'sync' && (
         <>
           <div className="card">
-            <AuthPanel 
+            <AuthPanel
               backendService={backendService}
               onAuthChange={setIsAuthenticated}
             />
           </div>
-          
+
           <div className="card">
-            <SyncSettings 
+            <SyncSettings
               backendService={backendService}
               onSyncChange={(enabled) => {
                 if (enabled) {
-                  // Trigger initial sync using messaging
                   triggerSync();
                 }
               }}
@@ -429,23 +444,29 @@ const Popup: React.FC = () => {
           </div>
         </>
       )}
+
       {activeTab === 'notifications' && userSettings && (
-  <>
-    <div className="card">
-      <NotificationSettings 
-        settings={userSettings} 
-        onSettingsChange={updateSettings} 
-      />
-    </div>
-    <div className="card">
-      <BreakHistory />
-    </div>
-  </>
-)}
+        <>
+          <div className="card">
+            <NotificationSettings
+              settings={userSettings}
+              onSettingsChange={updateSettings}
+            />
+          </div>
+          <div className="card">
+            <BreakHistory />
+          </div>
+        </>
+      )}
+
       {/* Action Buttons */}
       <div className="actions">
-        <button className="btn btn-primary" onClick={loadData}>
-          🔄 Refresh
+        <button
+          className={`btn btn-primary ${isRefreshing ? 'refreshing' : ''}`}
+          onClick={handleRefresh}
+          disabled={isRefreshing}
+        >
+          {isRefreshing ? '🔄 Refreshing...' : '🔄 Refresh'}
         </button>
         <button className="btn btn-secondary" onClick={clearData}>
           🗑️ Clear Data

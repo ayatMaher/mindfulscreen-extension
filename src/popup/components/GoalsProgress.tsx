@@ -39,15 +39,15 @@ const GoalsProgress: React.FC<GoalsProgressProps> = ({ dailySummary, settings })
   const productiveProgress = calculateProgress(productiveMinutes, settings.goals.dailyProductiveTime);
   const socialProgress = calculateProgress(socialMinutes, settings.goals.maxSocialTime);
   const dailyProgress = calculateProgress(totalMinutes, settings.dailyLimit);
-  const entertainmentProgress = settings.goals.maxEntertainmentTime ? 
+  const entertainmentProgress = settings.goals.maxEntertainmentTime ?
     calculateProgress(entertainmentMinutes, settings.goals.maxEntertainmentTime) : 0;
-  const shoppingProgress = settings.goals.maxShoppingTime ? 
+  const shoppingProgress = settings.goals.maxShoppingTime ?
     calculateProgress(shoppingMinutes, settings.goals.maxShoppingTime) : 0;
 
   return (
     <div className="goals-card">
       <h3>🎯 Your Goals Progress</h3>
-      
+
       {/* Productive Time Goal - Always show this one */}
       <div className="goal-item">
         <div className="goal-header">
@@ -56,9 +56,12 @@ const GoalsProgress: React.FC<GoalsProgressProps> = ({ dailySummary, settings })
           <span className="goal-stats">{productiveMinutes}m / {settings.goals.dailyProductiveTime}m</span>
         </div>
         <div className="progress-bar">
-          <div 
+          <div
             className="progress-fill productive-fill"
-            style={{ width: `${productiveProgress}%` }}
+            style={{
+              width: `${productiveProgress}%`,
+              transition: 'width 0.8s ease-in-out'
+            }}
           ></div>
         </div>
         <div className="goal-percentage">{productiveProgress}%</div>
@@ -72,9 +75,12 @@ const GoalsProgress: React.FC<GoalsProgressProps> = ({ dailySummary, settings })
           <span className="goal-stats">{socialMinutes}m / {settings.goals.maxSocialTime}m</span>
         </div>
         <div className="progress-bar">
-          <div 
-            className="progress-fill social-fill"
-            style={{ width: `${socialProgress}%` }}
+          <div
+            className="progress-fill productive-fill"
+            style={{
+              width: `${productiveProgress}%`,
+              transition: 'width 0.8s ease-in-out'
+            }}
           ></div>
         </div>
         <div className="goal-percentage">{socialProgress}%</div>
@@ -88,9 +94,12 @@ const GoalsProgress: React.FC<GoalsProgressProps> = ({ dailySummary, settings })
           <span className="goal-stats">{totalMinutes}m / {settings.dailyLimit}m</span>
         </div>
         <div className="progress-bar">
-          <div 
-            className="progress-fill daily-fill"
-            style={{ width: `${dailyProgress}%` }}
+          <div
+            className="progress-fill productive-fill"
+            style={{
+              width: `${productiveProgress}%`,
+              transition: 'width 0.8s ease-in-out'
+            }}
           ></div>
         </div>
         <div className="goal-percentage">{dailyProgress}%</div>
@@ -105,9 +114,12 @@ const GoalsProgress: React.FC<GoalsProgressProps> = ({ dailySummary, settings })
             <span className="goal-stats">{entertainmentMinutes}m / {settings.goals.maxEntertainmentTime}m</span>
           </div>
           <div className="progress-bar">
-            <div 
-              className="progress-fill entertainment-fill"
-              style={{ width: `${entertainmentProgress}%` }}
+            <div
+              className="progress-fill productive-fill"
+              style={{
+                width: `${productiveProgress}%`,
+                transition: 'width 0.8s ease-in-out'
+              }}
             ></div>
           </div>
           <div className="goal-percentage">{entertainmentProgress}%</div>
@@ -123,9 +135,12 @@ const GoalsProgress: React.FC<GoalsProgressProps> = ({ dailySummary, settings })
             <span className="goal-stats">{shoppingMinutes}m / {settings.goals.maxShoppingTime}m</span>
           </div>
           <div className="progress-bar">
-            <div 
-              className="progress-fill shopping-fill"
-              style={{ width: `${shoppingProgress}%` }}
+            <div
+              className="progress-fill productive-fill"
+              style={{
+                width: `${productiveProgress}%`,
+                transition: 'width 0.8s ease-in-out'
+              }}
             ></div>
           </div>
           <div className="goal-percentage">{shoppingProgress}%</div>

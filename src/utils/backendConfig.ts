@@ -34,152 +34,152 @@ export class BackendService {
     await chrome.storage.local.set({ authToken: token, userId });
   }
 
-async login(email: string, password: string): Promise<boolean> {
-  try {
-    // Get device ID
-    const deviceId = await this.getDeviceId();
-    
-    console.log('🔄 Sending login to:', `${this.config.baseUrl}/api/auth/login`);
-    console.log('📱 Device ID:', deviceId);
-    
-    const response = await fetch(`${this.config.baseUrl}/api/auth/login`, {
-      method: 'POST',
-      headers: { 
-        'Content-Type': 'application/json',
-        'Accept': 'application/json'
-      },
-      body: JSON.stringify({ 
-        email: email, 
-        password: password,
-        deviceId: deviceId  // <-- ADD THIS
-      })
-    });
+  async login(email: string, password: string): Promise<boolean> {
+    try {
+      // Get device ID
+      const deviceId = await this.getDeviceId();
 
-    console.log('📡 Login response status:', response.status);
-    
-    if (response.ok) {
-      const data = await response.json();
-      console.log('✅ Login successful:', data);
-      
-      if (data.token && data.user) {
-        await this.saveAuthState(data.token, data.user._id || data.user.id);
-        return true;
+      console.log('🔄 Sending login to:', `${this.config.baseUrl}/api/auth/login`);
+      console.log('📱 Device ID:', deviceId);
+
+      const response = await fetch(`${this.config.baseUrl}/api/auth/login`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json'
+        },
+        body: JSON.stringify({
+          email: email,
+          password: password,
+          deviceId: deviceId  // <-- ADD THIS
+        })
+      });
+
+      console.log('📡 Login response status:', response.status);
+
+      if (response.ok) {
+        const data = await response.json();
+        console.log('✅ Login successful:', data);
+
+        if (data.token && data.user) {
+          await this.saveAuthState(data.token, data.user._id || data.user.id);
+          return true;
+        } else {
+          console.error('❌ Missing token or user in response:', data);
+          return false;
+        }
       } else {
-        console.error('❌ Missing token or user in response:', data);
+        const errorText = await response.text();
+        console.error('❌ Login failed:', response.status, errorText);
         return false;
       }
-    } else {
-      const errorText = await response.text();
-      console.error('❌ Login failed:', response.status, errorText);
+    } catch (error) {
+      console.error('🔥 Network error during login:', error);
       return false;
     }
-  } catch (error) {
-    console.error('🔥 Network error during login:', error);
-    return false;
   }
-}
 
- async register(email: string, password: string, name: string): Promise<boolean> {
-  try {
-    // Get or create device ID
-    const deviceId = await this.getDeviceId();
-    
-    console.log('🔄 Sending registration to:', `${this.config.baseUrl}/api/auth/register`);
-    console.log('📱 Device ID:', deviceId);
-    
-    const response = await fetch(`${this.config.baseUrl}/api/auth/register`, {
-      method: 'POST',
-      headers: { 
-        'Content-Type': 'application/json',
-        'Accept': 'application/json'
-      },
-      body: JSON.stringify({ 
-        email: email, 
-        password: password, 
-        name: name,
-        deviceId: deviceId  // <-- ADD THIS
-      })
-    });
+  async register(email: string, password: string, name: string): Promise<boolean> {
+    try {
+      // Get or create device ID
+      const deviceId = await this.getDeviceId();
 
-    console.log('📡 Response status:', response.status);
-    
-    if (response.ok) {
-      const data = await response.json();
-      console.log('✅ Registration successful:', data);
-      
-      if (data.token && data.user) {
-        await this.saveAuthState(data.token, data.user._id || data.user.id);
-        return true;
+      console.log('🔄 Sending registration to:', `${this.config.baseUrl}/api/auth/register`);
+      console.log('📱 Device ID:', deviceId);
+
+      const response = await fetch(`${this.config.baseUrl}/api/auth/register`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json'
+        },
+        body: JSON.stringify({
+          email: email,
+          password: password,
+          name: name,
+          deviceId: deviceId  // <-- ADD THIS
+        })
+      });
+
+      console.log('📡 Response status:', response.status);
+
+      if (response.ok) {
+        const data = await response.json();
+        console.log('✅ Registration successful:', data);
+
+        if (data.token && data.user) {
+          await this.saveAuthState(data.token, data.user._id || data.user.id);
+          return true;
+        } else {
+          console.error('❌ Missing token or user in response:', data);
+          return false;
+        }
       } else {
-        console.error('❌ Missing token or user in response:', data);
+        const errorText = await response.text();
+        console.error('❌ Registration failed:', response.status, errorText);
         return false;
       }
-    } else {
-      const errorText = await response.text();
-      console.error('❌ Registration failed:', response.status, errorText);
+    } catch (error) {
+      console.error('🔥 Network error during registration:', error);
       return false;
     }
-  } catch (error) {
-    console.error('🔥 Network error during registration:', error);
-    return false;
   }
-}
 
   async syncData(activities: any[], dailySummary: any): Promise<boolean> {
-  if (!this.authToken || !this.userId) {
-    console.log('Not authenticated, skipping sync');
-    return false;
-  }
-
-  try {
-    const deviceId = await this.getDeviceId();
-       const cleanActivities = activities.map(activity => {
-      const { id, ...rest } = activity;
-      return {
-        ...rest,
-        // Keep extensionId if you want to track duplicates
-        extensionId: id
-      };
-    });
-    const syncData = {
-      userId: this.userId,
-      deviceId: deviceId,  // Add deviceId
-      activities: cleanActivities,
-      dailySummary,
-      timestamp: new Date().toISOString()
-    };
-
-    console.log('🔄 Sending sync data:', {
-      userId: this.userId,
-      activities: cleanActivities.length,
-      hasSummary: !!dailySummary
-    });
-
-    const response = await fetch(`${this.config.baseUrl}/api/data/sync`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${this.authToken}`
-      },
-      body: JSON.stringify(syncData)
-    });
-
-    console.log('📡 Sync response status:', response.status);
-    
-    if (response.ok) {
-      const data = await response.json();
-      console.log('✅ Sync successful:', data);
-      return true;
-    } else {
-      const errorText = await response.text();
-      console.error('❌ Sync failed:', response.status, errorText);
+    if (!this.authToken || !this.userId) {
+      console.log('Not authenticated, skipping sync');
       return false;
     }
-  } catch (error) {
-    console.error('🔥 Network error during sync:', error);
-    return false;
+
+    try {
+      const deviceId = await this.getDeviceId();
+      const cleanActivities = activities.map(activity => {
+        const { id, ...rest } = activity;
+        return {
+          ...rest,
+          // Keep extensionId if you want to track duplicates
+          extensionId: id
+        };
+      });
+      const syncData = {
+        userId: this.userId,
+        deviceId: deviceId,  // Add deviceId
+        activities: cleanActivities,
+        dailySummary,
+        timestamp: new Date().toISOString()
+      };
+
+      console.log('🔄 Sending sync data:', {
+        userId: this.userId,
+        activities: cleanActivities.length,
+        hasSummary: !!dailySummary
+      });
+
+      const response = await fetch(`${this.config.baseUrl}/api/data/sync`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${this.authToken}`
+        },
+        body: JSON.stringify(syncData)
+      });
+
+      console.log('📡 Sync response status:', response.status);
+
+      if (response.ok) {
+        const data = await response.json();
+        console.log('✅ Sync successful:', data);
+        return true;
+      } else {
+        const errorText = await response.text();
+        console.error('❌ Sync failed:', response.status, errorText);
+        return false;
+      }
+    } catch (error) {
+      console.error('🔥 Network error during sync:', error);
+      return false;
+    }
   }
-}
 
   async getInsights(): Promise<any> {
     if (!this.authToken || !this.userId) return null;
