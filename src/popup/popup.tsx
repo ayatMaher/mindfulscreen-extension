@@ -15,6 +15,7 @@ import SyncSettings from './components/SyncSettings';
 import { BackendService, defaultBackendConfig } from '../utils/backendConfig';
 import NotificationSettings from './components/NotificationSettings';
 import BreakHistory from './components/BreakHistory';
+import AdvancedAnalytics from './components/AdvancedAnalytics';
 import './popup.css';
 
 export interface Activity {
@@ -149,6 +150,15 @@ const Popup: React.FC = () => {
       setUserSettings(result.userSettings || null);
       setAchievements(result.achievements || []);
       setWeeklyData(result.weeklyData || generateSampleWeeklyData());
+
+       // Check if weeklyData exists, otherwise generate sample
+    let weekly = result.weeklyData;
+    if (!weekly || !Array.isArray(weekly)) {
+      weekly = generateSampleWeeklyData();
+      // Save it for next time
+      await chrome.storage.local.set({ weeklyData: weekly });
+    }
+    setWeeklyData(weekly);
     } catch (error) {
       console.error('Error loading data:', error);
     } finally {
@@ -341,33 +351,32 @@ const Popup: React.FC = () => {
         </>
       )}
 
+      
       {/* Analytics Tab */}
-      {activeTab === 'analytics' && (
-        <>
-          <div className="card">
-            <AnalyticsDashboard 
-              activities={activities}
-              dailySummary={dailySummary}
-              weeklyData={weeklyData}
-            />
-          </div>
-          
-          {userSettings && (
-            <div className="card">
-              <SmartRecommendations 
-                activities={activities}
-                dailySummary={dailySummary}
-                settings={userSettings}
-              />
-            </div>
-          )}
-          
-          <div className="card activity-card">
-            <ActivityFeed activities={activities} />
-          </div>
-        </>
-      )}
-
+{activeTab === 'analytics' && (
+  <>
+    <div className="card">
+      <AdvancedAnalytics 
+        weeklyData={weeklyData}
+        activities={activities}
+      />
+    </div>
+    
+    {userSettings && (
+      <div className="card">
+        <SmartRecommendations 
+          activities={activities}
+          dailySummary={dailySummary}
+          settings={userSettings}
+        />
+      </div>
+    )}
+    
+    <div className="card activity-card">
+      <ActivityFeed activities={activities} />
+    </div>
+  </>
+)}
       {/* Goals Tab */}
       {activeTab === 'goals' && userSettings && (
         <div className="card goals-card">

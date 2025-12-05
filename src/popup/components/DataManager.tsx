@@ -1,4 +1,4 @@
-import React from 'react';
+import React , {useState} from 'react';
 import { Activity, DailySummary } from '../popup';
 
 interface DataManagerProps {
@@ -8,16 +8,53 @@ interface DataManagerProps {
 
 const DataManager: React.FC<DataManagerProps> = ({ activities, dailySummary }) => {
   
+  const [exportFormat, setExportFormat] = useState<'csv' | 'json'>('csv');
+  const [dateRange, setDateRange] = useState<'all' | 'week' | 'month'>('all');
+
+  const getFilteredActivities = () => {
+    const now = new Date();
+    let cutoff = new Date();
+
+    switch (dateRange) {
+      case 'week':
+        cutoff.setDate(now.getDate() - 7);
+        break;
+      case 'month':
+        cutoff.setMonth(now.getMonth() - 1);
+        break;
+      default:
+        return activities;
+    }
+
+    return activities.filter(activity => 
+      new Date(activity.timestamp) >= cutoff
+    );
+  };
+
   const exportToCSV = () => {
-    const headers = ['Date', 'Time', 'Website', 'Title', 'Category', 'Duration (s)'];
-    const csvData = activities.map(activity => [
-      new Date(activity.timestamp).toLocaleDateString(),
-      new Date(activity.timestamp).toLocaleTimeString(),
-      activity.domain,
-      activity.title,
-      activity.category,
-      activity.duration.toString()
-    ]);
+    const filteredActivities = getFilteredActivities();
+
+    const headers = [
+      'Date', 'Time', 'Website', 'Title', 'Category', 
+      'Duration (s)', 'Domain', 'Productivity Score'
+    ];
+    
+    const csvData = filteredActivities.map(activity => {
+      const date = new Date(activity.timestamp);
+      const productivityScore = activity.category === 'productive' ? 'High' : 
+                              activity.category === 'social' ? 'Low' : 'Medium';
+      
+      return [
+        date.toLocaleDateString(),
+        date.toLocaleTimeString(),
+        activity.url,
+        `"${activity.title.replace(/"/g, '""')}"`, // Escape quotes for CSV
+        activity.category,
+        activity.duration.toString(),
+        activity.domain,
+        productivityScore
+      ];
+    });
 
     const csvContent = [
       headers.join(','),
@@ -28,10 +65,25 @@ const DataManager: React.FC<DataManagerProps> = ({ activities, dailySummary }) =
   };
 
   const exportToJSON = () => {
-    const exportData = {
+        const filteredActivities = getFilteredActivities();
+
+      const exportData = {
       exportDate: new Date().toISOString(),
-      activities: activities,
-      summary: dailySummary
+      dateRange,
+      totalActivities: filteredActivities.length,
+      totalTime: filteredActivities.reduce((sum, a) => sum + a.duration, 0),
+      activities: filteredActivities,
+      summary: dailySummary,
+      stats: {
+        byCategory: filteredActivities.reduce((acc, a) => {
+          acc[a.category] = (acc[a.category] || 0) + 1;
+          return acc;
+        }, {} as Record<string, number>),
+        byDomain: filteredActivities.reduce((acc, a) => {
+          acc[a.domain] = (acc[a.domain] || 0) + 1;
+          return acc;
+        }, {} as Record<string, number>)
+      }
     };
     
     downloadFile(
@@ -39,6 +91,73 @@ const DataManager: React.FC<DataManagerProps> = ({ activities, dailySummary }) =
       'mindfulscreen-data.json',
       'application/json'
     );
+  };
+
+   const exportToPDF = () => {
+    // Simple HTML-based PDF export
+    const filteredActivities = getFilteredActivities();
+    
+    const htmlContent = `
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <title>MindfulScreen Report</title>
+        <style>
+          body { font-family: Arial, sans-serif; margin: 40px; }
+          h1 { color: #4f46e5; }
+          .stats { background: #f8fafc; padding: 20px; border-radius: 10px; margin: 20px 0; }
+          table { width: 100%; border-collapse: collapse; margin: 20px 0; }
+          th, td { border: 1px solid #e2e8f0; padding: 10px; text-align: left; }
+          th { background: #4f46e5; color: white; }
+          .footer { margin-top: 40px; color: #64748b; font-size: 12px; }
+        </style>
+      </head>
+      <body>
+        <h1>🧠 MindfulScreen Report</h1>
+        <p>Generated: ${new Date().toLocaleString()}</p>
+        
+        <div class="stats">
+          <h3>📊 Summary</h3>
+          <p>Date Range: ${dateRange === 'all' ? 'All time' : `Last ${dateRange}`}</p>
+          <p>Total Activities: ${filteredActivities.length}</p>
+          <p>Total Time: ${Math.floor(filteredActivities.reduce((s, a) => s + a.duration, 0) / 60)} minutes</p>
+        </div>
+        
+        <h3>📋 Activity Log</h3>
+        <table>
+          <tr>
+            <th>Time</th>
+            <th>Website</th>
+            <th>Category</th>
+            <th>Duration</th>
+          </tr>
+          ${filteredActivities.slice(0, 50).map(activity => `
+            <tr>
+              <td>${new Date(activity.timestamp).toLocaleTimeString()}</td>
+              <td>${activity.domain}</td>
+              <td>${activity.category}</td>
+              <td>${Math.floor(activity.duration / 60)}m ${activity.duration % 60}s</td>
+            </tr>
+          `).join('')}
+        </table>
+        
+        ${filteredActivities.length > 50 ? 
+          `<p>... and ${filteredActivities.length - 50} more activities</p>` : ''}
+        
+        <div class="footer">
+          <p>Generated by MindfulScreen - Your Digital Wellness Companion</p>
+        </div>
+      </body>
+      </html>
+    `;
+
+    const blob = new Blob([htmlContent], { type: 'text/html' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `mindfulscreen-report-${new Date().toISOString().split('T')[0]}.html`;
+    link.click();
+    URL.revokeObjectURL(url);
   };
 
   const downloadFile = (content: string, filename: string, type: string) => {
@@ -59,46 +178,73 @@ const DataManager: React.FC<DataManagerProps> = ({ activities, dailySummary }) =
     }
   };
 
+ 
   return (
     <div className="data-manager-card">
       <h3>📁 Data Management</h3>
       
-      <div className="export-options">
-        <div className="export-section">
-          <h4>Export Your Data</h4>
-          <p>Download your browsing history for analysis</p>
-          
-          <div className="export-buttons">
-            <button className="btn btn-primary" onClick={exportToCSV}>
-              📊 Export CSV
+      <div className="export-controls">
+        <div className="control-group">
+          <label>Date Range:</label>
+          <select value={dateRange} onChange={(e) => setDateRange(e.target.value as any)}>
+            <option value="all">All Time</option>
+            <option value="week">Last Week</option>
+            <option value="month">Last Month</option>
+          </select>
+        </div>
+        
+        <div className="control-group">
+          <label>Format:</label>
+          <div className="format-buttons">
+            <button 
+              className={`format-btn ${exportFormat === 'csv' ? 'active' : ''}`}
+              onClick={() => setExportFormat('csv')}
+            >
+              CSV
             </button>
-            <button className="btn btn-primary" onClick={exportToJSON}>
-              📝 Export JSON
+            <button 
+              className={`format-btn ${exportFormat === 'json' ? 'active' : ''}`}
+              onClick={() => setExportFormat('json')}
+            >
+              JSON
             </button>
-          </div>
-          
-          <div className="export-stats">
-            <div className="stat">
-              <span>Activities:</span>
-              <strong>{activities.length}</strong>
-            </div>
-            <div className="stat">
-              <span>Total Time:</span>
-              <strong>{dailySummary ? Math.floor(dailySummary.totalTime / 60) : 0}m</strong>
-            </div>
           </div>
         </div>
+      </div>
+      
+      <div className="export-actions">
+        <button className="btn btn-primary" onClick={exportFormat === 'csv' ? exportToCSV : exportToJSON}>
+          📥 Export {exportFormat.toUpperCase()}
+        </button>
+        <button className="btn btn-secondary" onClick={exportToPDF}>
+          📄 Export as Report
+        </button>
+      </div>
+      
+      <div className="export-stats">
+        <div className="stat">
+          <span>Activities in range:</span>
+          <strong>{getFilteredActivities().length}</strong>
+        </div>
+        <div className="stat">
+          <span>Total time:</span>
+          <strong>{Math.floor(getFilteredActivities().reduce((s, a) => s + a.duration, 0) / 60)}m</strong>
+        </div>
+      </div>
 
-        <div className="danger-section">
-          <h4>⚠️ Danger Zone</h4>
-          <p>Permanently delete all your data</p>
-          <button className="btn btn-danger" onClick={clearAllData}>
-            🗑️ Clear All Data
-          </button>
-        </div>
+      <div className="danger-section">
+        <h4>⚠️ Danger Zone</h4>
+        <p>Permanently delete all your local data</p>
+        <button className="btn btn-danger" onClick={clearAllData}>
+          🗑️ Clear All Data
+        </button>
+        <p className="warning-note">
+          Note: Cloud data will remain unless deleted from your account
+        </p>
       </div>
     </div>
   );
+
 };
 
 export default DataManager;
