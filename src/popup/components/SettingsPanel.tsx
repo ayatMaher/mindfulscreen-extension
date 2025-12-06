@@ -13,6 +13,14 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({ settings, onSettingsChang
     const newSettings = { ...localSettings, [key]: value };
     setLocalSettings(newSettings);
     onSettingsChange(newSettings);
+
+    // Send message to background to update icon
+    if (key === 'enableNotifications') {
+      chrome.runtime.sendMessage({
+        type: 'TOGGLE_ICON',
+        enabled: value
+      });
+    }
   };
 
   const handleGoalChange = (goalKey: keyof UserSettings['goals'], value: number) => {

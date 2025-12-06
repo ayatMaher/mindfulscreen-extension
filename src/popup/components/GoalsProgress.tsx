@@ -35,6 +35,7 @@ const GoalsProgress: React.FC<GoalsProgressProps> = ({ dailySummary, settings })
   const entertainmentMinutes = Math.floor(dailySummary.categories.entertainment / 60);
   const shoppingMinutes = Math.floor(dailySummary.categories.shopping / 60);
   const totalMinutes = Math.floor(dailySummary.totalTime / 60);
+  const newsMinutes = Math.floor(dailySummary.categories.news / 60);
 
   const productiveProgress = calculateProgress(productiveMinutes, settings.goals.dailyProductiveTime);
   const socialProgress = calculateProgress(socialMinutes, settings.goals.maxSocialTime);

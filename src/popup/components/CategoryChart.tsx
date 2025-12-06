@@ -17,6 +17,7 @@ const CategoryChart: React.FC<CategoryChartProps> = ({ dailySummary }) => {
       social: { emoji: '👥', color: '#3b82f6', name: 'Social' },
       entertainment: { emoji: '🎮', color: '#ef4444', name: 'Entertainment' },
       shopping: { emoji: '🛒', color: '#8b5cf6', name: 'Shopping' },
+      news: { emoji: '📰', color: '#f59e0b', name: 'News' },
       other: { emoji: '🌐', color: '#6b7280', name: 'Other' }
     };
     return info[category as keyof typeof info] || info.other;
@@ -27,7 +28,8 @@ const CategoryChart: React.FC<CategoryChartProps> = ({ dailySummary }) => {
       <h3>Time by Category</h3>
       <div className="category-list">
         {Object.entries(dailySummary.categories)
-          .filter(([_, time]) => time > 0)
+          .sort(([, a], [, b]) => b - a) // Sort by time descending
+          .slice(0, 6) // Take top 6
           .map(([category, time]) => {
             const info = getCategoryInfo(category);
             return (

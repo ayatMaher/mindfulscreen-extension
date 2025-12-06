@@ -26,7 +26,7 @@ export interface Activity {
   title: string;
   timestamp: string;
   domain: string;
-  category: 'productive' | 'social' | 'entertainment' | 'shopping' | 'other';
+  category: 'productive' | 'social' | 'entertainment' | 'shopping' | 'news' | 'other';
   duration: number;
   categoryInfo: {
     emoji: string;
@@ -42,9 +42,11 @@ export interface DailySummary {
     social: number;
     entertainment: number;
     shopping: number;
+    news: number;
     other: number;
   };
 }
+
 export interface NotificationSettings {
   breakReminders: boolean;
   dailyLimits: boolean;
@@ -495,6 +497,7 @@ const generateSampleWeeklyData = (): DailySummary[] => {
       social: Math.floor(Math.random() * 3600),
       entertainment: Math.floor(Math.random() * 5400),
       shopping: Math.floor(Math.random() * 1800),
+      news: Math.floor(Math.random() * 3600),
       other: Math.floor(Math.random() * 3600)
     }
   }));

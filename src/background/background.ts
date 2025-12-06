@@ -60,6 +60,9 @@ class WellnessTracker {
     this.startTracking();
     this.setupBreakAlarms();
     this.loadUserSettings();
+    this.setupIconUpdateListener();
+    this.checkAndUpdateIcon();
+    this.syncManager = new SyncManager();
 
     // Initialize sync manager
     this.syncManager = new SyncManager();
@@ -444,6 +447,7 @@ class WellnessTracker {
         social: 0,
         entertainment: 0,
         shopping: 0,
+        news: 0,
         other: 0
       }
     };
@@ -475,15 +479,146 @@ class WellnessTracker {
 
   private classifyWebsite(domain: string): string {
     const domainLower = domain.toLowerCase();
-    const productive = ['github.com', 'stackoverflow.com', 'gitlab.com', 'docs.google.com', 'notion.so'];
-    const social = ['facebook.com', 'twitter.com', 'instagram.com', 'linkedin.com', 'reddit.com'];
-    const entertainment = ['youtube.com', 'netflix.com', 'spotify.com', 'twitch.tv'];
-    const shopping = ['amazon.com', 'ebay.com', 'etsy.com'];
 
-    if (productive.some(site => domainLower.includes(site))) return 'productive';
+    // Productive Websites (Work, Learning, Development)
+    const productive = [
+      // Development & Coding
+      'github.com', 'gitlab.com', 'stackoverflow.com', 'stackexchange.com',
+      'bitbucket.org', 'dev.to', 'codepen.io', 'replit.com', 'codesandbox.io',
+      'npmjs.com', 'yarnpkg.com', 'docker.com', 'kubernetes.io',
+
+      // Documentation & Learning
+      'docs.google.com', 'notion.so', 'evernote.com', 'obsidian.md',
+      'readthedocs.io', 'mdn.io', 'w3schools.com', 'freecodecamp.org',
+      'coursera.org', 'udemy.com', 'edx.org', 'khanacademy.org',
+      'linkedin.com/learning', 'pluralsight.com', 'skillshare.com',
+
+      // Professional & Business
+      'linkedin.com', 'indeed.com', 'glassdoor.com', 'monster.com',
+      'upwork.com', 'fiverr.com', 'freelancer.com', 'toptal.com',
+
+      // Email & Communication (Work)
+      'gmail.com', 'outlook.com', 'office.com', 'teams.microsoft.com',
+      'slack.com', 'zoom.us', 'meet.google.com', 'webex.com',
+
+      // Cloud & Productivity Tools
+      'drive.google.com', 'dropbox.com', 'onedrive.live.com', 'box.com',
+      'trello.com', 'asana.com', 'jira.atlassian.com', 'confluence.atlassian.com',
+      'figma.com', 'miro.com', 'mural.co',
+
+      // News & Research (Academic/Professional)
+      'scholar.google.com', 'researchgate.net', 'arxiv.org', 'ieee.org',
+      'acm.org', 'springer.com', 'elsevier.com', 'nature.com',
+      'science.org', 'cell.com', 'thelancet.com'
+    ];
+
+    // Social Media & Communication (Personal)
+    const social = [
+      // Major Social Networks
+      'facebook.com', 'fb.com', 'messenger.com',
+      'twitter.com', 'x.com', 'tweetdeck.twitter.com',
+      'instagram.com', 'threads.net',
+      'tiktok.com', 'snapchat.com',
+      'reddit.com', 'redd.it',
+
+      // Messaging & Chat
+      'whatsapp.com', 'telegram.org', 'signal.org',
+      'discord.com', 'discord.gg', 'discordapp.com',
+
+      // Professional Networking
+      'linkedin.com', // Also in productive, but personal use is social
+
+      // Forums & Communities
+      'quora.com', 'medium.com', 'tumblr.com',
+      'pinterest.com', 'nextdoor.com',
+
+      // Dating
+      'tinder.com', 'bumble.com', 'hinge.com', 'okcupid.com'
+    ];
+
+    // Entertainment & Leisure
+    const entertainment = [
+      // Video Streaming
+      'youtube.com', 'youtu.be', 'netflix.com', 'hulu.com',
+      'disneyplus.com', 'hbomax.com', 'amazon.com/video',
+      'twitch.tv', 'vimeo.com', 'dailymotion.com',
+
+      // Music & Audio
+      'spotify.com', 'apple.com/music', 'soundcloud.com',
+      'pandora.com', 'tidal.com', 'deezer.com',
+
+      // Gaming
+      'steampowered.com', 'store.steampowered.com', 'epicgames.com',
+      'xbox.com', 'playstation.com', 'nintendo.com',
+      'roblox.com', 'minecraft.net', 'fortnite.com',
+      'battle.net', 'origin.com', 'uplay.com',
+
+      // Comics & Anime
+      'webtoons.com', 'tapas.io', 'crunchyroll.com',
+      'funimation.com', 'viz.com', 'shonenjump.com',
+
+      // Sports & Hobbies
+      'espn.com', 'nba.com', 'nfl.com', 'mlb.com',
+      'chess.com', 'lichess.org', 'poki.com'
+    ];
+
+    // Shopping & E-commerce
+    const shopping = [
+      // Major Retailers
+      'amazon.com', 'amazon.co.uk', 'amazon.de', 'amazon.fr',
+      'ebay.com', 'walmart.com', 'target.com', 'bestbuy.com',
+      'homedepot.com', 'lowes.com', 'ikea.com',
+
+      // Fashion & Apparel
+      'shein.com', 'zara.com', 'hm.com', 'uniqlo.com',
+      'nike.com', 'adidas.com', 'underarmour.com',
+      'macys.com', 'nordstrom.com', 'gap.com',
+
+      // Electronics
+      'apple.com', 'samsung.com', 'microsoft.com',
+      'dell.com', 'hp.com', 'lenovo.com',
+
+      // Food & Grocery Delivery
+      'doordash.com', 'ubereats.com', 'grubhub.com',
+      'instacart.com', 'shipt.com', 'helloFresh.com',
+
+      // Specialty Shopping
+      'etsy.com', 'wayfair.com', 'overstock.com',
+      'newegg.com', 'bhphotovideo.com', 'adorama.com',
+
+      // Travel & Booking
+      'booking.com', 'airbnb.com', 'expedia.com',
+      'kayak.com', 'skyscanner.net', 'tripadvisor.com'
+    ];
+
+    // News & Information (Neutral/Balanced)
+    const news = [
+      'cnn.com', 'bbc.com', 'nytimes.com', 'washingtonpost.com',
+      'theguardian.com', 'reuters.com', 'apnews.com',
+      'bloomberg.com', 'wsj.com', 'ft.com',
+      'npr.org', 'pbs.org', 'aljazeera.com'
+    ];
+
+    // Check categories in order of priority
+    if (productive.some(site => domainLower.includes(site))) {
+      // Special case: LinkedIn can be both productive and social
+      if (domainLower.includes('linkedin.com')) {
+        // Check if it's likely work-related (learning, jobs) vs social
+        const path = window.location?.pathname || '';
+        if (path.includes('/learning') || path.includes('/jobs') ||
+          path.includes('/company') || path.includes('/in/')) {
+          return 'productive';
+        }
+        return 'social';
+      }
+      return 'productive';
+    }
+
     if (social.some(site => domainLower.includes(site))) return 'social';
     if (entertainment.some(site => domainLower.includes(site))) return 'entertainment';
     if (shopping.some(site => domainLower.includes(site))) return 'shopping';
+    if (news.some(site => domainLower.includes(site))) return 'news';
+
     return 'other';
   }
 
@@ -493,6 +628,7 @@ class WellnessTracker {
       social: { emoji: '👥', color: '#3b82f6', name: 'Social' },
       entertainment: { emoji: '🎮', color: '#ef4444', name: 'Entertainment' },
       shopping: { emoji: '🛒', color: '#8b5cf6', name: 'Shopping' },
+      news: { emoji: '📰', color: '#f59e0b', name: 'News' },
       other: { emoji: '🌐', color: '#6b7280', name: 'Other' }
     };
     return info[category as keyof typeof info] || info.other;
@@ -522,6 +658,50 @@ class WellnessTracker {
       console.error('Sync trigger failed:', error);
     }
   }
+
+  private async updateExtensionIcon(isEnabled: boolean) {
+    try {
+      const iconPath = isEnabled ? 'icons/icon' : 'icons/icon-disabled';
+
+      await chrome.action.setIcon({
+        path: {
+          "16": `${iconPath}-16.png`,
+          "48": `${iconPath}-48.png`,
+          "128": `${iconPath}-128.png`
+        }
+      });
+
+      console.log(`✅ Extension icon updated: ${isEnabled ? 'Enabled' : 'Disabled'}`);
+    } catch (error) {
+      console.error('❌ Failed to update extension icon:', error);
+    }
+  }
+
+  private async checkAndUpdateIcon() {
+    try {
+      const result = await chrome.storage.local.get(['userSettings']);
+      const isEnabled = result.userSettings?.enableNotifications !== false; // Default to true
+
+      await this.updateExtensionIcon(isEnabled);
+    } catch (error) {
+      console.error('Error checking icon state:', error);
+    }
+  }
+  private setupIconUpdateListener() {
+    chrome.storage.onChanged.addListener((changes, areaName) => {
+      if (areaName === 'local' && changes.userSettings) {
+        const newSettings = changes.userSettings.newValue;
+        const oldSettings = changes.userSettings.oldValue;
+
+        // Check if notification setting changed
+        if (newSettings?.enableNotifications !== oldSettings?.enableNotifications) {
+          this.updateExtensionIcon(newSettings?.enableNotifications !== false);
+        }
+      }
+    });
+  }
+
+
 }
 
 // Handle notification clicks
@@ -624,6 +804,33 @@ chrome.alarms.onAlarm.addListener((alarm) => {
 
     chrome.alarms.clear('break-timer');
   }
+});
+
+async function toggleExtensionIcon(enabled: boolean) {
+  const iconPath = enabled ? 'icon' : 'icon-disabled';
+
+  chrome.action.setIcon({
+    path: {
+      "16": `icons/${iconPath}-16.png`,
+      "48": `icons/${iconPath}-48.png`,
+      "128": `icons/${iconPath}-128.png`
+    }
+  });
+}
+
+// Listen for messages from popup to toggle icon
+chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
+  if (request.type === 'TOGGLE_ICON') {
+    toggleExtensionIcon(request.enabled);
+    sendResponse({ success: true });
+  }
+  return true;
+});
+
+// Check initial state on startup
+chrome.storage.local.get(['userSettings'], (result) => {
+  const isEnabled = result.userSettings?.enableNotifications !== false;
+  toggleExtensionIcon(isEnabled);
 });
 
 // Initialize

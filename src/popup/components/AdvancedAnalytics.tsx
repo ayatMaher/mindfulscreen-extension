@@ -135,6 +135,7 @@ const AdvancedAnalytics: React.FC<AdvancedAnalyticsProps> = ({ weeklyData, activ
         social: Math.floor(Math.random() * 5400),
         entertainment: Math.floor(Math.random() * 7200),
         shopping: Math.floor(Math.random() * 1800),
+        news: Math.floor(Math.random() * 1800),
         other: Math.floor(Math.random() * 3600)
       }
     }));
